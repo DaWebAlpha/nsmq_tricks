@@ -1,0 +1,2 @@
+# nsmq_tricks
+NSMQ
