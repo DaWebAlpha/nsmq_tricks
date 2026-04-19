@@ -1,36 +1,91 @@
 import pino from "pino";
 import path from "node:path";
 import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import { config } from "../config/config.js";
 
+/**
+ * ---------------------------------------------------------
+ * RESOLVE CURRENT DIRECTORY
+ * ---------------------------------------------------------
+ *
+ * Purpose:
+ * Reconstruct __dirname for ESM modules.
+ *
+ * Why this exists:
+ * Node.js ES modules do not provide __dirname by default.
+ * This ensures all file system paths are resolved reliably.
+ */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
- * Environment and Logging Level Configuration
+ * ---------------------------------------------------------
+ * ENVIRONMENT AND LOG LEVEL
+ * ---------------------------------------------------------
+ *
+ * Purpose:
+ * Determines runtime mode and the default minimum log level.
+ *
+ * Behavior:
+ * - development -> debug
+ * - production  -> info
  */
 const isDevelopment = config.node_env === "development";
 const logLevel = isDevelopment ? "debug" : "info";
 
+/**
+ * ---------------------------------------------------------
+ * LOG DIRECTORY
+ * ---------------------------------------------------------
+ *
+ * Purpose:
+ * Defines the absolute base directory where log files are stored.
+ *
+ * Important:
+ * Using an absolute path avoids issues caused by different
+ * process working directories in development, PM2, Docker,
+ * systemd, or cloud deployments.
+ */
+const logDirectory = path.resolve(__dirname, "../../../logs");
 
 /**
- * Ensure the logs directory exists at the project root
+ * Ensure the log directory exists before transports write files.
  */
-
-const logDirectory = "./logs"
-
-if(!fs.existsSync(logDirectory)){
-    fs.mkdirSync(logDirectory, {recursive: true});
+if (!fs.existsSync(logDirectory)) {
+    fs.mkdirSync(logDirectory, { recursive: true });
 }
 
-
 /**
- * Blueprint for log rotation configuration (Pino-Roll)
- * @param {string} fileLocation - Sub-path within the logs folder
- * @param {string} frequency - How often to rotate (daily/hourly)
- * @param {string} fileSize - Max size before rotation (e.g., '20m')
- * @param {string} minLevel - Minimum log level for this transport
+ * ---------------------------------------------------------
+ * TRANSPORT TARGET FACTORY
+ * ---------------------------------------------------------
+ *
+ * Purpose:
+ * Builds a reusable pino transport target configuration for
+ * file-based logging with rotation support.
+ *
+ * Features:
+ * - Writes logs to a dedicated file
+ * - Rotates by frequency and size
+ * - Stores output as JSON
+ * - Retains a fixed number of rotated files
+ *
+ * @param {string} fileLocation - Relative file path inside log directory
+ * @param {string} frequency - Rotation frequency (example: "daily")
+ * @param {string} fileSize - Maximum file size before rotation (example: "20m")
+ * @param {string} minLevel - Minimum log level handled by this target
+ * @param {number} retentionCount - Number of rotated files to retain
+ *
+ * @returns {Object} Pino transport target definition
  */
-
-const bluePrint = (fileLocation, frequency, fileSize, minLevel = 'info', daysToDelete) => ({
+const buildTransportTarget = (
+    fileLocation,
+    frequency,
+    fileSize,
+    minLevel = "info",
+    retentionCount
+) => ({
     target: "pino-roll",
     level: minLevel,
     options: {
@@ -42,112 +97,189 @@ const bluePrint = (fileLocation, frequency, fileSize, minLevel = 'info', daysToD
         dateFormat: "yyyy-MM-dd",
         sync: false,
         limit: {
-            count: daysToDelete,
-        }
+            count: retentionCount,
+        },
+    },
+});
 
-    }
-})
-
-
-
-
-/*
-
-|--------------------------------------------------------------------------
-| DEV TERMINAL PRETTY PRINT
-|--------------------------------------------------------------------------
-
-| In development, we format JSON logs into a human-readable, colorized output.
-*/
-
+/**
+ * ---------------------------------------------------------
+ * TERMINAL TARGETS
+ * ---------------------------------------------------------
+ *
+ * Purpose:
+ * Adds developer-friendly terminal output in development mode.
+ *
+ * Production behavior:
+ * - No pretty terminal transport is attached
+ * - Production continues writing structured JSON logs only
+ */
 const terminalTargets = isDevelopment
     ? [
-        {
-            target: "pino-pretty",
-            options: {
-                colorize: true,
-                ignore: 'pid,hostname',
-                translateTime: 'SYS:yyyy-mm-dd HH:MM:ss'
-            }
-        }
-    ]: [];
+          {
+              target: "pino-pretty",
+              options: {
+                  colorize: true,
+                  ignore: "pid,hostname",
+                  translateTime: "SYS:yyyy-mm-dd HH:MM:ss",
+              },
+          },
+      ]
+    : [];
 
-
+/**
+ * ---------------------------------------------------------
+ * SYSTEM LOG TRANSPORT
+ * ---------------------------------------------------------
+ *
+ * Purpose:
+ * Handles general application and runtime logs.
+ *
+ * Output:
+ * - info-level file
+ * - error-level file
+ * - terminal pretty output in development
+ */
 const systemTransport = pino.transport({
-    targets:[
-        bluePrint("system/app-info", "daily", "20m", "info", 90),
-        bluePrint("system/app-error", "daily", "20m", "error", 90),
+    targets: [
+        buildTransportTarget("system/app-info", "daily", "20m", "info", 90),
+        buildTransportTarget("system/app-error", "daily", "20m", "error", 90),
         ...terminalTargets,
-    ]
-})
+    ],
+});
 
+/**
+ * ---------------------------------------------------------
+ * AUDIT LOG TRANSPORT
+ * ---------------------------------------------------------
+ *
+ * Purpose:
+ * Handles audit and compliance-oriented events such as
+ * authentication actions, privileged changes, and security events.
+ */
 const auditTransport = pino.transport({
     targets: [
-        bluePrint("audit/app-audit", "daily", "20m", "info", 180),
+        buildTransportTarget("audit/app-audit", "daily", "20m", "info", 180),
         ...terminalTargets,
-    ]
-})
+    ],
+});
 
+/**
+ * ---------------------------------------------------------
+ * ACCESS LOG TRANSPORT
+ * ---------------------------------------------------------
+ *
+ * Purpose:
+ * Handles request and traffic logging for tracing,
+ * observability, and operational analysis.
+ */
 const accessTransport = pino.transport({
     targets: [
-        bluePrint("access/app-access", "daily", "20m", "info", 180),
-        ...terminalTargets
-    ]
-})
+        buildTransportTarget("access/app-access", "daily", "20m", "info", 180),
+        ...terminalTargets,
+    ],
+});
 
-
-
-/*
-|--------------------------------------------------------------------------
-| BASE LOGGER CONFIGURATION
-|--------------------------------------------------------------------------
-| Shared settings for all loggers including security redaction.
-*/
+/**
+ * ---------------------------------------------------------
+ * BASE LOGGER CONFIGURATION
+ * ---------------------------------------------------------
+ *
+ * Purpose:
+ * Provides the shared configuration used by all logger instances.
+ *
+ * Features:
+ * - Sets the minimum log level
+ * - Uses ISO timestamps
+ * - Redacts sensitive fields
+ * - Adds readable level labels
+ *
+ * Security:
+ * Sensitive fields such as passwords, tokens, API keys,
+ * authorization headers, and cookies are removed from logs.
+ *
+ * @returns {Object} Shared pino configuration
+ */
 const getBaseConfig = () => ({
     level: logLevel,
     timestamp: pino.stdTimeFunctions.isoTime,
-    // Redact sensitive data from logs to ensure security compliance
+
+    /**
+     * Redact sensitive fields from log payloads.
+     *
+     * remove: true
+     * Completely removes matching fields from the final log output.
+     */
     redact: {
         paths: [
-            'password',
-            '*.password',
-            'token',
-            '*.token',
-            'access_token',
-            'refresh_token',
-            '*.access_token',
-            '*.refresh_token',
-            'apiKey',
-            '*.apiKey',
-            'req.headers.authorization',
-            'req.headers.cookie'
+            "password",
+            "*.password",
+            "token",
+            "*.token",
+            "access_token",
+            "refresh_token",
+            "*.access_token",
+            "*.refresh_token",
+            "accessToken",
+            "*.accessToken",
+            "refreshToken",
+            "*.refreshToken",
+            "apiKey",
+            "*.apiKey",
+            "authorization",
+            "*.authorization",
+            "headers.authorization",
+            "*.headers.authorization",
+            "cookie",
+            "*.cookie",
+            "headers.cookie",
+            "*.headers.cookie",
+            "req.headers.authorization",
+            "req.headers.cookie",
         ],
-        remove: true // Completely remove these fields from the log object
+        remove: true,
     },
-    // Map numerical levels to human-readable labels
+
+    /**
+     * Add a readable label for numeric pino levels.
+     *
+     * Example:
+     * - 30 -> info
+     * - 50 -> error
+     */
     mixin(_context, levelNumber) {
         const labels = {
-            10: 'trace',
-            20: 'debug',
-            30: 'info',
-            40: 'warn',
-            50: 'error',
-            60: 'fatal'
+            10: "trace",
+            20: "debug",
+            30: "info",
+            40: "warn",
+            50: "error",
+            60: "fatal",
         };
 
         return {
-            level_label: labels[levelNumber] || 'info'
+            level_label: labels[levelNumber] || "info",
         };
-    }
+    },
 });
 
+/**
+ * ---------------------------------------------------------
+ * LOGGER INSTANCES
+ * ---------------------------------------------------------
+ *
+ * Purpose:
+ * Exposes dedicated loggers for different logging domains.
+ */
 
 export const system_logger = pino(getBaseConfig(), systemTransport);
 export const audit_logger = pino(getBaseConfig(), auditTransport);
 export const access_logger = pino(getBaseConfig(), accessTransport);
 
-export default {
+export const loggers = {
     system_logger,
     audit_logger,
-    access_logger
+    access_logger,
 };
+
+export default loggers;
