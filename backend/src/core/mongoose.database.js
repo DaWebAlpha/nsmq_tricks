@@ -1,47 +1,77 @@
 import mongoose from "mongoose";
-import { config } from "../config/config.js"
+import { config } from "../config/config.js";
 import { system_logger } from "./pino.logger.js";
-import InternalServerError from "../errors/internalserver.error.js";
 
-
+/**
+ * MongoDB Connection URI
+ */
 const MONGO_URI = config.mongo_uri;
 
-
-const connectDB = async() => {
-
-    if(!MONGO_URI){
-        system_logger.error("MONGO_URI is not defined in environment variables");
-        throw new InternalServerError({message: "MONGO_URI is not defined in environment variables"});
+/**
+ * Database Connection Utility
+ */
+const databaseConnection = async () => {
+    /**
+     * Prevent duplicate connections
+     */
+    if (mongoose.connection.readyState === 1) {
+        system_logger.warn("MongoDB already connected");
+        return;
     }
-    try{
 
+    try {
+        /**
+         * Connection options (should ideally come from config)
+         */
         const options = {
             maxPoolSize: 50,
             minPoolSize: 5,
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,
-        }
+            autoIndex: config.node_env !== "production",
+        };
 
-        await mongoose.connect(MONGO_URI, options)
-        system_logger.info("Database has been connected");
+        await mongoose.connect(MONGO_URI, options);
 
-    }catch(error){
-        system_logger.error("Failed to connect database",{error: error.message});
+        system_logger.info("MongoDB connected successfully");
 
-        throw new InternalServerError({message: "Failed to connect database", details: `${error.message}`})
+    } catch (error) {
+        system_logger.error({ err: error }, "MongoDB connection failed");
+        throw new Error("MongoDB connection failed");
     }
-}
+};
 
-// Event listeners (safe after mock)
+/**
+ * MongoDB Connection Event Listeners
+ */
+
+/**
+ * Connected
+ */
+mongoose.connection.on("connected", () => {
+    system_logger.info("MongoDB connection established");
+});
+
+/**
+ * Reconnected
+ */
+mongoose.connection.on("reconnected", () => {
+    system_logger.warn("MongoDB reconnected");
+});
+
+/**
+ * Disconnected
+ */
 mongoose.connection.on("disconnected", () => {
-  system_logger.warn("MongoDB connection lost");
+    system_logger.warn("MongoDB connection lost");
 });
 
+/**
+ * Error
+ */
 mongoose.connection.on("error", (err) => {
-  system_logger.error("MongoDB connection error", {
-    error: err.message,
-  });
+    system_logger.error({ err }, "MongoDB connection error");
 });
 
-export { connectDB };
-export default connectDB;
+export { databaseConnection };
+export default databaseConnection;
