@@ -1,0 +1,121 @@
+<%- include("../../partials/sub_nav") %>
+
+<main role="main">
+    <section class="section__form">
+        <div class="form__container">
+            <div class="form__card">
+                <header class="form__header">
+                    <div class="logo__icon">⚡</div>
+                    <h2 id="loginHeading">Login</h2>
+                    <p>Access your account</p>
+                </header>
+
+                <% if (success) { %>
+                    <div class="alert success__alert">
+                        <%= success %>
+                    </div>
+                <% } %>
+
+                <% if (error) { %>
+                    <div class="alert error__alert">
+                        <%= error %>
+                    </div>
+                <% } %>
+
+                <form
+                    action="/auth/page/login"
+                    method="POST"
+                    role="form"
+                    novalidate
+                    autocomplete="off"
+                    aria-labelledby="loginHeading"
+                    class="form"
+                    id="loginForm"
+                >
+                    <input
+                        type="hidden"
+                        name="_csrf"
+                        value="<%= csrfToken || '' %>"
+                    />
+
+                    <div class="form__group">
+                        <div class="input__wrapper">
+                            <label for="identifier" class="form__label">
+                                Identifier
+                            </label>
+                            <input
+                                type="text"
+                                name="identifier"
+                                class="form__control input"
+                                id="identifier"
+                                placeholder="Enter username, email or phone number"
+                                aria-describedby="identifierHelp identifierError"
+                                autocomplete="username"
+                                value="<%= oldInput?.identifier || '' %>"
+                                required
+                            />
+                            <span class="input__line"></span>
+                            <small id="identifierHelp" class="form__hint">
+                                Use your username, email, or phone number.
+                            </small>
+                            <small class="form__error" id="identifierError"></small>
+                        </div>
+                    </div>
+
+                    <div class="form__group">
+                        <div class="input__wrapper password__wrapper">
+                            <label for="password" class="form__label">
+                                Password
+                            </label>
+                            <input
+                                type="password"
+                                name="password"
+                                id="password"
+                                class="form__control input"
+                                placeholder="Enter password"
+                                aria-describedby="passwordHelp passwordError"
+                                autocomplete="current-password"
+                                required
+                            />
+                            <button
+                                type="button"
+                                class="password__toggle"
+                                id="passwordToggle"
+                                aria-label="Toggle password visibility"
+                            >
+                                <span class="toggle__icon"></span>
+                            </button>
+                            <span class="input__line"></span>
+                            <small id="passwordHelp" class="form__hint">
+                                Keep your password secure.
+                            </small>
+                            <small class="form__error" id="passwordError"></small>
+                        </div>
+                    </div>
+
+                    <div class="form__options">
+                        <a href="/auth/page/forgot-password" class="forgot__password">
+                            Forgot password?
+                        </a>
+                    </div>
+
+                    <button type="submit" class="login__button btn">
+                        <span class="button__text">Sign In</span>
+                        <span class="button__loader"></span>
+                        <span class="button__glow"></span>
+                    </button>
+                </form>
+
+                <div class="divider">
+                    <span>or</span>
+                </div>
+
+                <div class="signup__link">
+                    <p>New here? <a href="/auth/page/register">Create an account</a></p>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<%- include("../../partials/footer") %>
