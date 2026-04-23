@@ -70,7 +70,7 @@ const required = {
 };
 
 for (const [key, value] of Object.entries(required)) {
-    if (!value || !value.trim()) {
+    if (!value || !String(value).trim()) {
         throw new Error(`Missing required environment variable: ${key}`);
     }
 }
@@ -106,6 +106,8 @@ const toPositiveInt = (value, fallback) => {
     return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+
+
 /**
  * ---------------------------------------------------------
  * NODE ENVIRONMENT VALIDATION
@@ -121,11 +123,13 @@ const toPositiveInt = (value, fallback) => {
  * - Throws error if invalid
  * - Prevents accidental misconfiguration in production
  */
-const allowedNodeEnvs = ["development", "production", "test"];
+const resolvedNodeEnv = NODE_ENV || "development";
 
-if (!allowedNodeEnvs.includes(NODE_ENV)) {
-    throw new Error(`Invalid NODE_ENV: ${NODE_ENV}`);
+const allowedNodeEnvs = ["development", "production", "test"];
+if (!allowedNodeEnvs.includes(resolvedNodeEnv)) {
+    throw new Error(`Invalid NODE_ENV: ${resolvedNodeEnv}`);
 }
+
 
 /**
  * ---------------------------------------------------------
@@ -145,6 +149,7 @@ const safeLogLevel = allowedLogLevels.includes(LOG_LEVEL)
     ? LOG_LEVEL
     : "info";
 
+    
 /**
  * ---------------------------------------------------------
  * FINAL CONFIG OBJECT
@@ -173,7 +178,7 @@ const config = Object.freeze({
     /**
      * Runtime environment
      */
-    node_env: NODE_ENV,
+    node_env: resolvedNodeEnv,
 
     /**
      * Logging level
