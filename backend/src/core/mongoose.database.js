@@ -14,10 +14,10 @@ const databaseConnection = async () => {
     /**
      * Prevent duplicate connections
      */
-    if (mongoose.connection.readyState === 1) {
+    /* if (mongoose.connection.readyState === 1) {
         system_logger.warn("MongoDB already connected");
         return;
-    }
+    } */
 
     try {
         /**
