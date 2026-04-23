@@ -1,0 +1,169 @@
+/**
+ * ============================================================================
+ * DESIGN TOKENS (GLOBAL VARIABLES)
+ * ============================================================================
+ * Purpose:
+ *   - Define reusable design values for the application
+ *   - Keep tokens neutral / dull so component files can style pages cleanly
+ * ============================================================================
+ */
+
+:root {
+    /* ==========================================================================
+       COLORS
+       ========================================================================== */
+    --color-dark: #1f1f24;
+    --color-accent: #6f7785;
+    --color-white: #ffffff;
+    --color-light: #b2b7c2;
+    --color-border: #343844;
+    --color-text: #e8ebf0;
+    --color-muted: #8b93a3;
+    --color-danger: #d65c5c;
+    --color-success: #58a779;
+    --color-warning-text: #b0894f;
+    --color-dark-background: #151520;
+    --color-dark-surface: #1a1a25;
+    --color-dark-surface-2: #20202d;
+    --color-placeholder: #7f8797;
+
+    /* Overlay / alpha colors */
+    --color-overlay-dark: rgba(0, 0, 0, 0.55);
+    --color-accent-soft: rgba(111, 119, 133, 0.15);
+    --color-danger-soft: rgba(214, 92, 92, 0.10);
+    --color-danger-border: rgba(214, 92, 92, 0.28);
+    --color-danger-badge: rgba(214, 92, 92, 0.14);
+    --color-success-soft: rgba(88, 167, 121, 0.10);
+    --color-success-border: rgba(88, 167, 121, 0.28);
+    --color-success-badge: rgba(88, 167, 121, 0.14);
+    --color-warning-soft: rgba(176, 137, 79, 0.12);
+    --color-warning-border: rgba(176, 137, 79, 0.25);
+    --color-warning-badge: rgba(176, 137, 79, 0.16);
+    --color-info-soft: rgba(111, 119, 133, 0.10);
+    --color-info-border: rgba(111, 119, 133, 0.18);
+
+    /* Login page accent colors */
+    --color-login-bg: #0a0a0f;
+    --color-login-card: #151520;
+    --color-login-input: #1a1a25;
+    --color-login-border: #2a2a35;
+    --color-login-text: #ffffff;
+    --color-login-muted: #a0a0b0;
+    --color-login-green: #00ff88;
+    --color-login-blue: #0099ff;
+    --color-login-pink: #ff0080;
+
+    /* ==========================================================================
+       TYPOGRAPHY
+       ========================================================================== */
+    --font-family-base: "Inter", Arial, Helvetica, sans-serif;
+    --font-family-heading: "Inter", Arial, Helvetica, sans-serif;
+
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-md: 0.95rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.1rem;
+    --font-size-xl: 1.125rem;
+    --font-size-2xl: 1.25rem;
+    --font-size-3xl: 1.5rem;
+    --font-size-4xl: 2rem;
+    --font-size-5xl: 2.5rem;
+    --font-size-hero: clamp(2rem, 5vw, 4.5rem);
+    --font-size-hero-text: clamp(1rem, 2.2vw, 1.35rem);
+
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    --line-height-tight: 1.2;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.7;
+
+    /* ==========================================================================
+       SPACING
+       ========================================================================== */
+    --space-4: 4px;
+    --space-6: 6px;
+    --space-8: 8px;
+    --space-10: 10px;
+    --space-12: 12px;
+    --space-14: 14px;
+    --space-16: 16px;
+    --space-18: 18px;
+    --space-20: 20px;
+    --space-24: 24px;
+    --space-28: 28px;
+    --space-32: 32px;
+    --space-40: 40px;
+    --space-42: 42px;
+    --space-44: 44px;
+    --space-48: 48px;
+    --space-60: 60px;
+    --space-64: 64px;
+    --space-72: 72px;
+
+    /* ==========================================================================
+       BORDERS / RADII
+       ========================================================================== */
+    --border-width-sm: 1px;
+    --border-width-md: 2px;
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-full: 999px;
+
+    /* ==========================================================================
+       SHADOWS
+       ========================================================================== */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.16);
+    --shadow-login-card:
+        0 20px 40px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
+    --shadow-login-hover:
+        0 20px 60px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(0, 255, 136, 0.1),
+        0 0 40px rgba(0, 255, 136, 0.1);
+
+    /* ==========================================================================
+       SIZING
+       ========================================================================== */
+    --container-width: 1200px;
+    --container-sm: 720px;
+    --container-lg: 1440px;
+    --sidebar-width: 280px;
+    --card-min-width: 260px;
+    --modal-width: 600px;
+    --thumbnail-max-width: 160px;
+
+    --input-height: 50px;
+    --pagination-size: 40px;
+    --avatar-size: 48px;
+    --icon-button-size: 42px;
+    --hamburger-width: 28px;
+    --hamburger-height: 3px;
+
+    --hero-min-height: 60vh;
+    --hero-content-width: 800px;
+    --hero-text-width: 720px;
+
+    /* ==========================================================================
+       EFFECTS / MOTION
+       ========================================================================== */
+    --transition-fast: 0.2s ease;
+    --transition-normal: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    --transform-hover-y: translateY(-1px);
+
+    /* ==========================================================================
+       Z-INDEX
+       ========================================================================== */
+    --z-base: 1;
+    --z-nav: 100;
+    --z-modal: 1000;
+}

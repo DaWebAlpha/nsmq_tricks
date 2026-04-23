@@ -1,0 +1,325 @@
+/**
+ * ============================================================================
+ * LAYOUT
+ * ============================================================================
+ * Purpose:
+ *   - Define structural layout wrappers and page composition helpers
+ *   - Keep layout concerns separate from component styling
+ * ============================================================================
+ */
+
+/* Page wrapper */
+.page {
+    min-height: 100%;
+    background-color: var(--color-light);
+    color: var(--color-text);
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-normal);
+}
+
+/* Main application shell */
+.app__shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-light);
+}
+
+/* Section wrapper */
+.section {
+    padding: var(--space-48) 0;
+}
+
+.section__form{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.6;
+    overflow: hidden;
+    padding: var(--space-20) 0;
+}
+/* Section header */
+.section__header {
+    margin-bottom: var(--space-24);
+}
+
+/* Section body */
+.section__body {
+    display: block;
+}
+
+/* Section footer */
+.section__footer {
+    margin-top: var(--space-24);
+}
+
+/* Standard content container */
+.container {
+    width: min(100% - (var(--space-24) * 2), var(--container-width));
+    margin-inline: auto;
+}
+
+/* Narrow content container */
+.container__sm {
+    width: min(100% - (var(--space-24) * 2), var(--container-sm));
+    margin-inline: auto;
+}
+
+/* Wide content container */
+.container__lg {
+    width: min(100% - (var(--space-24) * 2), var(--container-lg));
+    margin-inline: auto;
+}
+
+/* Full-width container */
+.container__fluid {
+    width: 100%;
+    padding-inline: var(--space-24);
+    margin-inline: auto;
+}
+
+/* Grid layout */
+.grid {
+    display: grid;
+    gap: var(--space-24);
+}
+
+/* Two-column grid */
+.grid__2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-24);
+}
+
+/* Three-column grid */
+.grid__3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-24);
+}
+
+/* Four-column grid */
+.grid__4 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-24);
+}
+
+/* Flexible row layout */
+.row {
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-24);
+    align-items: center;
+}
+
+/* Flexible column layout */
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-24);
+}
+
+/* Stack layout */
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-16);
+}
+
+/* Inline cluster layout */
+.cluster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-16);
+    align-items: center;
+}
+
+/* Sidebar layout */
+.sidebar__layout {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    gap: var(--space-32);
+    align-items: start;
+}
+
+/* Content area */
+.content {
+    min-width: 0;
+    flex: 1;
+}
+
+/* Aside area */
+.aside {
+    min-width: 0;
+}
+
+/* Centered content wrapper */
+.centered {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsive media wrapper */
+.media__wrapper {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+}
+
+.media__wrapper img,
+.media__wrapper video,
+.media__wrapper iframe {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border: 0;
+}
+
+/* Card layout group */
+.card__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(var(--card-min-width), 1fr));
+    gap: var(--space-24);
+}
+
+/* Hero section */
+.hero__banner {
+    min-height: var(--hero-min-height);
+    padding: var(--space-64) 0;
+    background: linear-gradient(
+        135deg,
+        var(--color-dark),
+        var(--color-text)
+    );
+    color: var(--color-white);
+    display: grid;
+    place-items: center;
+    text-align: center;
+}
+
+/* Hero content */
+.hero__content {
+    max-width: var(--hero-content-width);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-20);
+}
+
+/* Hero title */
+.hero__title {
+    font-size: var(--font-size-hero);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+}
+
+/* Hero text */
+.hero__text {
+    font-size: var(--font-size-hero-text);
+    color: var(--color-light);
+    margin-bottom: var(--space-24);
+}
+
+/* Hero actions */
+.hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-16);
+    align-items: center;
+    justify-content: center;
+    margin-top: var(--space-8);
+}
+
+/* Hero action */
+.hero__action {
+    text-decoration: none;
+}
+
+/* Footer layout */
+.footer__container {
+    margin-top: auto;
+    padding: var(--space-16) var(--space-8);
+    background: var(--color-dark);
+    color: var(--color-white);
+    bottom: 0;
+    margin-top: auto;
+}
+
+/**
+ * ============================================================================
+ * RESPONSIVE LAYOUT ADJUSTMENTS
+ * ============================================================================
+ */
+
+@media (max-width: 1024px) {
+    .grid__4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid__3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sidebar__layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .section {
+        padding: var(--space-40) 0;
+    }
+
+    .container,
+    .container__sm,
+    .container__lg,
+    .container__fluid {
+        width: 100%;
+        padding-inline: var(--space-16);
+    }
+
+    .grid__2,
+    .grid__3,
+    .grid__4 {
+        grid-template-columns: 1fr;
+    }
+
+    .row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .hero__banner {
+        padding: var(--space-48) 0;
+    }
+
+    .hero__actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+@media (max-width: 480px) {
+    .section {
+        padding: var(--space-32) 0;
+    }
+
+    .stack,
+    .cluster,
+    .column,
+    .row {
+        gap: var(--space-12);
+    }
+
+    .card__grid,
+    .grid,
+    .grid__2,
+    .grid__3,
+    .grid__4 {
+        gap: var(--space-16);
+    }
+}

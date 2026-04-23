@@ -1,0 +1,158 @@
+/**
+ * ============================================================================
+ * ENTERPRISE CSS RESET
+ * ============================================================================
+ * Purpose:
+ *   - Remove browser default styles (User-Agent Stylesheet)
+ *   - Normalize behavior across browsers
+ *   - Preserve accessibility and native behaviors where required
+ *
+ * Based on:
+ *   - The New CSS Reset (modern approach)
+ * ============================================================================
+ */
+
+/* Reset all elements except layout-critical ones */
+*:where(:not(html, iframe, canvas, img, svg, video, audio):not(svg *, symbol *)) {
+  all: unset;
+  display: revert;
+}
+
+/* Standardize box model */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Prevent unwanted font scaling on mobile devices */
+html {
+  -moz-text-size-adjust: none;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+}
+
+/* Restore expected pointer interactions */
+a,
+button,
+label[for],
+select,
+summary,
+[role="button"],
+[role="link"] {
+  cursor: revert;
+}
+
+/* Remove default list styles */
+ol,
+ul,
+menu {
+  list-style: none;
+}
+
+/* Fix ordered list numbering issues in Firefox */
+ol {
+  counter-reset: revert;
+}
+
+/* Normalize media elements */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-inline-size: 100%;
+  block-size: auto;
+}
+
+/* Normalize table layout */
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* Normalize form typography */
+input,
+textarea,
+select,
+button {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+/* Restore text selection behavior in inputs */
+input,
+textarea {
+  -webkit-user-select: auto;
+}
+
+/* Restore textarea defaults */
+textarea {
+  white-space: revert;
+  resize: vertical;
+}
+
+/* Normalize button appearance */
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* Restore meter element styling */
+meter {
+  -webkit-appearance: revert;
+  appearance: revert;
+}
+
+/* Preserve formatting for preformatted text */
+:where(pre) {
+  all: revert;
+  box-sizing: border-box;
+}
+
+/* Normalize placeholder text */
+::placeholder {
+  color: unset;
+  opacity: 1;
+}
+
+/* Ensure hidden elements remain hidden */
+:where([hidden]) {
+  display: none !important;
+}
+
+/* Fix contenteditable behavior */
+:where([contenteditable]:not([contenteditable="false"])) {
+  -moz-user-modify: read-write;
+  -webkit-user-modify: read-write;
+  overflow-wrap: break-word;
+  -webkit-line-break: after-white-space;
+  -webkit-user-select: auto;
+}
+
+/* Enable draggable elements */
+:where([draggable="true"]) {
+  -webkit-user-drag: element;
+}
+
+/* Normalize dialog/modal behavior */
+:where(dialog:modal) {
+  all: revert;
+  box-sizing: border-box;
+}
+
+/* Remove default WebKit details marker */
+::-webkit-details-marker {
+  display: none;
+}
+
+/* Ensure visible focus states for accessibility */
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
