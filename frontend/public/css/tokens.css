@@ -18,7 +18,7 @@
     --color-light: #b2b7c2;
     --color-border: #343844;
     --color-text: #e8ebf0;
-    --color-muted: #8b93a3;
+    --color-muted: #6b717c;
     --color-danger: #d65c5c;
     --color-success: #58a779;
     --color-warning-text: #b0894f;
@@ -166,4 +166,7 @@
     --z-base: 1;
     --z-nav: 100;
     --z-modal: 1000;
+
+
+    
 }

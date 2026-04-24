@@ -1,0 +1,171 @@
+<%- include("../partials/header", {title: "Dashboard"}) %>
+<%- include("../partials/dashboardnav") %>
+
+<main role="main" class="dashboard">
+    <section class="dashboard__hero">
+        <div class="container">
+            <div class="dashboard__hero-content">
+                <p class="dashboard__eyebrow">NSMQ Training Arena</p>
+
+                <h1 class="dashboard__title">
+                    Welcome, <%= user?.username || "Contestant" %>
+                </h1>
+
+                <p class="dashboard__text">
+                    Prepare for Physics, Chemistry, Biology, and Mathematics with speed drills,
+                    past questions, riddles, mock battles, and quiz-style practice.
+                </p>
+
+                <div class="dashboard__actions">
+                    <a href="/dashboard/mock-tests" class="main__button btn">
+                        <span class="button__glow"></span>
+                        <span class="button__text">Start Mock Battle</span>
+                    </a>
+
+                    <a href="/dashboard/past-questions" class="dashboard__link-btn">
+                        Start Practice
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section dashboard__section">
+        <div class="container">
+            <!-- <div class="dashboard__stats">
+                <article class="dashboard__stat">
+                    <span class="dashboard__stat-icon">🏆</span>
+                    <strong>4</strong>
+                    <span>Core NSMQ Subjects</span>
+                </article>
+
+                <article class="dashboard__stat">
+                    <span class="dashboard__stat-icon">⚡</span>
+                    <strong>Speed</strong>
+                    <span>Timed Quiz Practice</span>
+                </article>
+
+                <article class="dashboard__stat">
+                    <span class="dashboard__stat-icon">🎯</span>
+                    <strong>Exam</strong>
+                    <span>Past Question Focused</span>
+                </article> 
+            </div> -->
+
+            <header class="dashboard__section-header">
+                <div>
+                    <p class="dashboard__eyebrow">Choose Your Battle Field</p>
+                    <h2 class="dashboard__section-title">Subject Practice</h2>
+                </div>
+            </header>
+
+            <div class="grid__4 dashboard__grid">
+                <article class="card subject__card subject__card--physics">
+                    <div class="subject__badge">Physics</div>
+
+                    <header class="subject__header">
+                        <span class="subject__icon">⚡</span>
+                        <p class="subject__round">Speed Race • Riddles • Theory</p>
+                    </header>
+
+                    <div class="subject__body">
+                        <h3 class="subject__title">Physics</h3>
+                        <p class="subject__text">
+                            Master motion, electricity, waves, energy, mechanics, and practical physics.
+                        </p>
+
+                        <div class="subject__meta">
+                            <span>Timed drills</span>
+                            <span>Calculation rounds</span>
+                            <span>Concept riddles</span>
+                        </div>
+                    </div>
+
+                    <footer class="subject__footer">
+                        <a href="/dashboard/physics" class="subject__button">Enter Physics Arena</a>
+                    </footer>
+                </article>
+
+                <article class="card subject__card subject__card--mathematics">
+                    <div class="subject__badge">Mathematics</div>
+
+                    <header class="subject__header">
+                        <span class="subject__icon">📐</span>
+                        <p class="subject__round">Problem Solving • Speed • Logic</p>
+                    </header>
+
+                    <div class="subject__body">
+                        <h3 class="subject__title">Mathematics</h3>
+                        <p class="subject__text">
+                            Practice algebra, geometry, trigonometry, statistics, and quick calculations.
+                        </p>
+
+                        <div class="subject__meta">
+                            <span>Fast solving</span>
+                            <span>Formula recall</span>
+                            <span>Quiz battle</span>
+                        </div>
+                    </div>
+
+                    <footer class="subject__footer">
+                        <a href="/dashboard/mathematics" class="subject__button">Enter Maths Arena</a>
+                    </footer>
+                </article>
+
+                <article class="card subject__card subject__card--chemistry">
+                    <div class="subject__badge">Chemistry</div>
+
+                    <header class="subject__header">
+                        <span class="subject__icon">🧪</span>
+                        <p class="subject__round">Reactions • Structures • Lab</p>
+                    </header>
+
+                    <div class="subject__body">
+                        <h3 class="subject__title">Chemistry</h3>
+                        <p class="subject__text">
+                            Learn bonding, acids, bases, organic chemistry, equations, and mole concepts.
+                        </p>
+
+                        <div class="subject__meta">
+                            <span>Equations</span>
+                            <span>Organic naming</span>
+                            <span>Lab facts</span>
+                        </div>
+                    </div>
+
+                    <footer class="subject__footer">
+                        <a href="/dashboard/chemistry" class="subject__button">Enter Chemistry Arena</a>
+                    </footer>
+                </article>
+
+                <article class="card subject__card subject__card--biology">
+                    <div class="subject__badge">Biology</div>
+
+                    <header class="subject__header">
+                        <span class="subject__icon">🧬</span>
+                        <p class="subject__round">Life Science • Diagrams • Systems</p>
+                    </header>
+
+                    <div class="subject__body">
+                        <h3 class="subject__title">Biology</h3>
+                        <p class="subject__text">
+                            Study cells, genetics, ecology, plants, reproduction, and human body systems.
+                        </p>
+
+                        <div class="subject__meta">
+                            <span>Diagrams</span>
+                            <span>Definitions</span>
+                            <span>Riddle clues</span>
+                        </div>
+                    </div>
+
+                    <footer class="subject__footer">
+                        <a href="/dashboard/biology" class="subject__button">Enter Biology Arena</a>
+                    </footer>
+                </article>
+            </div>
+        </div>
+    </section>
+</main>
+
+<%- include("../partials/login_footer") %>

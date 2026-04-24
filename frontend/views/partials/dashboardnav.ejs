@@ -1,0 +1,17 @@
+
+<nav class="nav">
+    <div class="nav__logo"><a href="/dashboard">DashBoard</a></div>
+    <form action="/auth/page/logout" method="POST">
+        <input
+            type="hidden"
+            name="_csrf"
+            value="<%= csrfToken || '' %>"
+        />
+
+        <button type="submit" class="login__button btn">
+            <span class="button__text">Logout</span>
+            <span class="button__loader"></span>
+            <span class="button__glow"></span>
+        </button>
+    </form>
+</nav>

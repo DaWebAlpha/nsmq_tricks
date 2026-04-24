@@ -15,18 +15,20 @@ html {
 }
 
 /* Global body styles */
-body {
-  min-height: 100vh;
-  font-family: var(--font-family-ui);
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-base);
-  color: var(--text-color);
-  background-color: var(--bg-color);
-  -webkit-font-smoothing: antialiased;
-  display: flex;
-  flex-direction: column;
-}
 
+
+
+body {
+    font-family: var(--font-family-base);
+    background: var(--color-login-bg);
+    min-height: 100vh;
+    color: var(--color-login-text);
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+}
 /* Text selection styling */
 ::selection {
   background-color: var(--color-black);

@@ -10,93 +10,131 @@ import { generateCSRFToken } from "../../utils/csrf.js";
 
 /**
  * ---------------------------------------------------------
+ * PAGE RENDER HELPER
+ * ---------------------------------------------------------
+ *
+ * Purpose:
+ * Creates a reusable route handler for rendering views.
+ *
+ * Behavior:
+ * - Sends HTTP 200
+ * - Renders specified view
+ * - Injects title into template
+ * - Issues CSRF token for secure browser forms
+ * - Passes flash messages to the page
+ */
+function renderPage(view, title) {
+    return autoCatchFn(async (request, response) => {
+        const csrfToken = generateCSRFToken();
+
+        setCSRFTokenCookie(response, csrfToken);
+
+        return response.status(200).render(view, {
+            title,
+            csrfToken,
+            success: request.flash?.("success")?.[0],
+            error: request.flash?.("error")?.[0],
+            oldInput: {},
+        });
+    });
+}
+
+/**
+ * ---------------------------------------------------------
  * AUTHENTICATION PAGE CONTROLLER
  * ---------------------------------------------------------
  *
  * Purpose:
- * Handles server-rendered authentication flows.
+ * Handles both:
+ * - Authentication logic (POST requests)
+ * - Authentication page rendering (GET requests)
  *
  * Responsibilities:
  * - Delegates business logic to AuthService
- * - Stores authentication tokens in secure cookies
- * - Issues CSRF token for browser protection
- * - Renders only safe response fields to templates
- * - Redirects after state-changing authentication actions where appropriate
+ * - Manages authentication cookies
+ * - Handles CSRF protection
+ * - Renders authentication-related views
  *
  * Important:
- * - Access and refresh tokens are stored in cookies
- * - Tokens are never exposed in rendered templates
- * - CSRF token is issued separately for browser requests
- * - Logout and refresh flows should not render standalone pages
+ * - Tokens are stored in cookies (never exposed to views)
+ * - CSRF tokens are issued for browser security
  */
 class AuthPageController {
     /**
      * -----------------------------------------------------
-     * REGISTER NEW USER
+     * AUTH LOGIC (POST ROUTES)
      * -----------------------------------------------------
-     *
-     * Behavior:
-     * - Creates a new user account
-     * - Stores authentication cookies
-     * - Issues a CSRF token cookie
-     * - Redirects authenticated user to the post-auth page
      */
+
     register = autoCatchFn(async (request, response) => {
-        const result = await authService.register(request.body, request);
-        const csrfToken = generateCSRFToken();
+        try {
+            const result = await authService.register(request.body, request);
+            const csrfToken = generateCSRFToken();
 
-        setAuthCookies(response, {
-            accessToken: result.accessToken,
-            refreshToken: result.refreshToken,
-        });
+            setAuthCookies(response, {
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+            });
 
-        setCSRFTokenCookie(response, csrfToken);
+            setCSRFTokenCookie(response, csrfToken);
 
-        request.flash?.("success", result.message);
+            request.flash?.("success", result.message);
 
-        return response.redirect("/dashboard");
+            return response.redirect("/dashboard");
+        } catch (error) {
+            const csrfToken = generateCSRFToken();
+
+            clearAuthCookies(response);
+            setCSRFTokenCookie(response, csrfToken);
+
+            return response.status(400).render("pages/auth/register", {
+                title: "Register",
+                csrfToken,
+                success: undefined,
+                error: error?.message || "Registration failed",
+                oldInput: {
+                    username: request.body?.username ?? "",
+                    email: request.body?.email ?? "",
+                    phoneNumber: request.body?.phoneNumber ?? ""
+
+                },
+            });
+        }
     });
 
-    /**
-     * -----------------------------------------------------
-     * USER LOGIN
-     * -----------------------------------------------------
-     *
-     * Behavior:
-     * - Authenticates user credentials
-     * - Stores authentication cookies
-     * - Issues a CSRF token cookie
-     * - Redirects authenticated user to the post-auth page
-     */
     login = autoCatchFn(async (request, response) => {
-        const result = await authService.login(request.body, request);
-        const csrfToken = generateCSRFToken();
+        try {
+            const result = await authService.login(request.body, request);
+            const csrfToken = generateCSRFToken();
 
-        setAuthCookies(response, {
-            accessToken: result.accessToken,
-            refreshToken: result.refreshToken,
-        });
+            setAuthCookies(response, {
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+            });
 
-        setCSRFTokenCookie(response, csrfToken);
+            setCSRFTokenCookie(response, csrfToken);
 
-        request.flash?.("success", result.message);
+            request.flash?.("success", result.message);
 
-        return response.redirect("/dashboard");
+            return response.redirect("/dashboard");
+        } catch (error) {
+            const csrfToken = generateCSRFToken();
+
+            clearAuthCookies(response);
+            setCSRFTokenCookie(response, csrfToken);
+
+            return response.status(401).render("pages/auth/login", {
+                title: "Login",
+                csrfToken,
+                success: undefined,
+                error: "Invalid credentials",
+                oldInput: {
+                    identifier: request.body?.identifier ?? "",
+                },
+            });
+        }
     });
 
-    /**
-     * -----------------------------------------------------
-     * REFRESH ACCESS SESSION
-     * -----------------------------------------------------
-     *
-     * Behavior:
-     * - Reads refresh token from cookie first
-     * - Falls back to request body if needed
-     * - Refreshes session through AuthService
-     * - Rotates authentication cookies
-     * - Re-issues CSRF token cookie
-     * - Redirects user back to the intended page
-     */
     refreshToken = autoCatchFn(async (request, response) => {
         const refreshToken =
             request.cookies?.[REFRESH_TOKEN_COOKIE_NAME] ??
@@ -127,18 +165,6 @@ class AuthPageController {
         return response.redirect(redirectTo);
     });
 
-    /**
-     * -----------------------------------------------------
-     * LOGOUT USER
-     * -----------------------------------------------------
-     *
-     * Behavior:
-     * - Reads refresh token from cookie first
-     * - Falls back to request body if needed
-     * - Revokes refresh token through AuthService
-     * - Clears all authentication-related cookies
-     * - Redirects user to login page
-     */
     logout = autoCatchFn(async (request, response) => {
         const refreshToken =
             request.cookies?.[REFRESH_TOKEN_COOKIE_NAME] ??
@@ -153,17 +179,23 @@ class AuthPageController {
 
         request.flash?.("success", result.message);
 
-        return response.redirect("/login");
+        return response.redirect("/auth/page/login");
     });
 
     /**
      * -----------------------------------------------------
-     * GET CURRENT AUTHENTICATED USER
+     * AUTH VIEW RENDERING (GET ROUTES)
      * -----------------------------------------------------
-     *
-     * Behavior:
-     * - Uses authenticated context already attached by middleware
-     * - Renders current user and security information
+     */
+
+    getLoginPage = renderPage("pages/auth/login", "Login");
+
+    getRegisterPage = renderPage("pages/auth/register", "Register");
+
+    /**
+     * -----------------------------------------------------
+     * CURRENT USER VIEW
+     * -----------------------------------------------------
      */
     me = autoCatchFn(async (request, response) => {
         return response.status(200).render("me", {

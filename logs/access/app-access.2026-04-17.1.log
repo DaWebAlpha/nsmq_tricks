@@ -1,0 +1,16 @@
+{"level":30,"time":"2026-04-17T20:13:39.748Z","pid":8176,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/health","ip":"::1"}
+{"level":30,"time":"2026-04-17T20:16:17.340Z","pid":8176,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/health/","ip":"::1"}
+{"level":30,"time":"2026-04-17T20:20:41.072Z","pid":13556,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/health","ip":"::1"}
+{"level":30,"time":"2026-04-17T20:27:44.082Z","pid":12188,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/","ip":"::1"}
+{"level":30,"time":"2026-04-17T20:28:45.977Z","pid":13248,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/","ip":"::1"}
+{"level":30,"time":"2026-04-17T20:32:41.650Z","pid":13648,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/health","ip":"::1"}
+{"level":30,"time":"2026-04-17T20:33:35.199Z","pid":12948,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/healt","ip":"::1"}
+{"level":30,"time":"2026-04-17T20:37:35.033Z","pid":12720,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/healt","ip":"::1"}
+{"level":30,"time":"2026-04-17T20:39:01.100Z","pid":15312,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/healt","ip":"::1"}
+{"level":30,"time":"2026-04-17T20:49:01.515Z","pid":11672,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/healt","ip":"::1"}
+{"level":30,"time":"2026-04-17T20:52:35.262Z","pid":6744,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/healt","ip":"::1"}
+{"level":30,"time":"2026-04-17T20:53:21.508Z","pid":5776,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/healt","ip":"::1"}
+{"level":30,"time":"2026-04-17T20:54:47.068Z","pid":5776,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/healt","ip":"::1"}
+{"level":30,"time":"2026-04-17T21:04:44.575Z","pid":3920,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/heal","ip":"::1"}
+{"level":30,"time":"2026-04-17T21:06:54.948Z","pid":7720,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/heal","ip":"::1"}
+{"level":30,"time":"2026-04-17T21:08:37.171Z","pid":15192,"hostname":"TM1_Laptop","level_label":"info","method":"GET","url":"/healt","ip":"::1"}
