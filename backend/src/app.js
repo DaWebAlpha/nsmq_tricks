@@ -20,7 +20,8 @@ import { authApiRouter } from "./routes/auth/auth.api.route.js";
 import { authPageRouter } from "./routes/auth/auth.page.route.js";
 import { pageRouter } from "./routes/pages/pages.routes.js";
 import { csrfMiddleware } from "./middlewares/csrf.middleware.js";
-
+import { subscriptionRouter } from "./routes/subscription/subscription.routes.js"
+import { notesRouter } from "./routes/notes/notes.routes.js";
 
 import { 
     getClientIP,
@@ -208,8 +209,9 @@ app.get("/health", (_request, response) => {
  */
 app.use("/auth/api", authApiRouter);
 app.use("/auth/page", authPageRouter);
-
+app.use("/subscription", subscriptionRouter);
 app.use("/", pageRouter);
+app.use("/", notesRouter);
 
 /**
  * ---------------------------------------------------------
