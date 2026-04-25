@@ -1,6 +1,9 @@
 import { autoCatchFn } from "../../utils/autoCatchFn.js";
 import { generateCSRFToken } from "../../utils/csrf.js";
-import { setCSRFTokenCookie } from "../../utils/auth.cookies.js";
+import {
+    setCSRFTokenCookie,
+    REFRESH_TOKEN_COOKIE_NAME,
+} from "../../utils/auth.cookies.js";
 
 function renderPage(view, title) {
     return autoCatchFn(async (request, response) => {
@@ -20,7 +23,22 @@ class PageController {
 
     getRegisterPage = renderPage("pages/auth/register", "Register");
 
-    getHomePage = renderPage("pages/home", "Home");
+    getHomePage = autoCatchFn(async (request, response) => {
+        const refreshToken = request.cookies?.[REFRESH_TOKEN_COOKIE_NAME];
+
+        if (refreshToken) {
+            return response.redirect("/dashboard");
+        }
+
+        const csrfToken = generateCSRFToken();
+
+        setCSRFTokenCookie(response, csrfToken);
+
+        return response.status(200).render("pages/home", {
+            title: "Home",
+            csrfToken,
+        });
+    });
 
     getAboutPage = renderPage("pages/about", "About");
 

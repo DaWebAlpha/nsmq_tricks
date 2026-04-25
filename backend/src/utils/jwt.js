@@ -29,7 +29,7 @@ if (!JWT_ACCESS_SECRET || typeof JWT_ACCESS_SECRET !== "string") {
     });
 }
 
-const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 15 * 60; // 15 minutes
+const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 2 * 60; // 15 minutes
 const REFRESH_TOKEN_EXPIRES_IN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const REFRESH_TOKEN_BYTE_LENGTH = 32;
 

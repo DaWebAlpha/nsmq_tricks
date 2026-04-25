@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import validator from "validator";
 import { hashPassword, verifyPassword } from "../../utils/password.argon2.js";
 import { InternalServerError } from "../../errors/internalserver.error.js";
@@ -6,38 +7,29 @@ import { RESERVED_WORDS, normalizeValue } from "../../utils/string.utils.js";
 import { createBaseModel } from "../mongoose.model.base.js";
 import { system_logger } from "../../core/pino.logger.js";
 import { normalizePhoneNumber } from "../../utils/phone.js";
+import { config } from "../../config/config.js";
 
-/**
- * Username Validation Rule
- *
- * Rules:
- * - 3 to 20 characters
- * - alphanumeric base
- * - optional dot, underscore, hyphen between segments
- */
+const SUBSCRIPTION_EXPIRY_TIME = config.subscription_expiry_time;
+
 const USERNAME_REGEX = /^(?=.{3,20}$)[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/;
 
-/**
- * Password Validation Rule
- *
- * Rules:
- * - 8 to 120 characters
- * - at least one lowercase letter
- * - at least one uppercase letter
- * - at least one digit
- * - at least one special character
- */
 const PASSWORD_REGEX =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,120}$/;
 
-/**
- * Supported User Roles
- */
 const USER_ROLES = ["user", "moderator", "admin", "superadmin"];
 
-/**
- * Shared input guards
- */
+const SUBSCRIPTION_PLANS = ["free", "premium", "pro", "enterprise"];
+
+const assertPaidSubscriptionPlan = (plan) => {
+    if (!SUBSCRIPTION_PLANS.includes(plan) || plan === "free") {
+        throw new BadRequestError({
+            message: "Invalid subscription plan",
+        });
+    }
+
+    return plan;
+};
+
 const assertNonEmptyNormalizedValue = (value, message) => {
     const normalized = normalizeValue(String(value || ""));
 
@@ -56,7 +48,10 @@ const assertValidNormalizedEmail = (email) => {
 
     if (!validator.isEmail(normalized)) {
         system_logger.warn({ email }, "Attempt to find user with invalid email");
-        throw new BadRequestError({ message: "Valid email is required" });
+
+        throw new BadRequestError({
+            message: "Valid email is required",
+        });
     }
 
     return normalized;
@@ -68,28 +63,42 @@ const assertValidNormalizedUsername = (username) => {
         "Valid username is required"
     );
 
-    if (
-        RESERVED_WORDS.has(normalized) ||
-        !USERNAME_REGEX.test(normalized)
-    ) {
+    if (RESERVED_WORDS.has(normalized) || !USERNAME_REGEX.test(normalized)) {
         system_logger.warn(
             { username },
             "Attempt to find user with invalid username"
         );
-        throw new BadRequestError({ message: "Valid username is required" });
+
+        throw new BadRequestError({
+            message: "Valid username is required",
+        });
     }
 
     return normalized;
 };
 
-/**
- * User Schema Definition
- *
- * Responsibility:
- * - identity fields
- * - credentials
- * - role assignment
- */
+const subscriptionSchema = new mongoose.Schema(
+    {
+        isActive: {
+            type: Boolean,
+            default: false,
+        },
+
+        expiresAt: {
+            type: Date,
+            default: null,
+        },
+
+        plan: {
+            type: String,
+            enum: SUBSCRIPTION_PLANS,
+            default: "free",
+        },
+    },
+    { _id: false }
+);
+
+
 const userSchemaDefinition = {
     username: {
         type: String,
@@ -132,11 +141,6 @@ const userSchemaDefinition = {
         required: [true, "Phone number is required"],
         trim: true,
 
-        /**
-         * Normalize Before Storage
-         *
-         * Stores phone number in E.164 format.
-         */
         set: function (val) {
             if (!val) return val;
 
@@ -167,6 +171,11 @@ const userSchemaDefinition = {
         },
     },
 
+    subscription: {
+        type: subscriptionSchema,
+        default: () => ({}),
+    },
+
     role: {
         type: String,
         default: "user",
@@ -195,9 +204,6 @@ const userSchemaDefinition = {
     },
 };
 
-/**
- * User Model
- */
 const User = createBaseModel("User", userSchemaDefinition, (schema) => {
     schema.index(
         { username: 1 },
@@ -229,14 +235,84 @@ const User = createBaseModel("User", userSchemaDefinition, (schema) => {
         }
     );
 
+    schema.index({ "subscription.isActive": 1, "subscription.expiresAt": 1 });
+    schema.index({ "subscription.isActive": 1, role: 1 });
     schema.index({ createdAt: -1 });
     schema.index({ updatedAt: -1 });
     schema.index({ isDeleted: 1, deletedAt: 1 });
     schema.index({ phoneNumber: 1, isDeleted: 1 });
 
-    /**
-     * Pre-validate Normalization
-     */
+    schema.virtual("hasActiveSubscription").get(function () {
+        if (!this.subscription?.isActive) return false;
+        if (!this.subscription?.expiresAt) return false;
+
+        return this.subscription.expiresAt > new Date();
+    });
+
+    schema.methods.subscriptionExpired = function () {
+        if (!this.subscription?.expiresAt) return true;
+
+        return this.subscription.expiresAt <= new Date();
+    };
+
+    schema.methods.activateSubscription = function (plan = "premium") {
+        assertPaidSubscriptionPlan(plan);
+
+        this.subscription = {
+            isActive: true,
+            expiresAt: new Date(Date.now() + SUBSCRIPTION_EXPIRY_TIME),
+            plan,
+        };
+
+        return this;
+    };
+
+    schema.methods.renewSubscription = function (plan = "premium") {
+        assertPaidSubscriptionPlan(plan);
+
+        const now = new Date();
+
+        const baseDate =
+            this.subscription?.expiresAt && this.subscription.expiresAt > now
+                ? this.subscription.expiresAt
+                : now;
+
+        this.subscription = {
+            isActive: true,
+            expiresAt: new Date(baseDate.getTime() + SUBSCRIPTION_EXPIRY_TIME),
+            plan,
+        };
+
+        return this;
+    };
+
+    schema.methods.cancelSubscription = function () {
+        this.subscription = {
+            isActive: false,
+            expiresAt: null,
+            plan: "free",
+        };
+
+        return this;
+    };
+
+    schema.methods.expireSubscription = function () {
+        this.subscription = {
+            isActive: false,
+            expiresAt: new Date(),
+            plan: "free",
+        };
+
+        return this;
+    };
+
+    schema.query.activeSubscription = function () {
+        return this.where({
+            "subscription.isActive": true,
+            "subscription.expiresAt": { $gt: new Date() },
+        });
+    };
+
     schema.pre("validate", function () {
         if (this.isModified("username") && this.username) {
             this.username = normalizeValue(String(this.username || ""));
@@ -257,24 +333,26 @@ const User = createBaseModel("User", userSchemaDefinition, (schema) => {
         }
     });
 
-    /**
-     * Pre-save Password Hashing
-     */
     schema.pre("save", async function () {
+        if (
+            this.subscription?.isActive &&
+            this.subscription?.expiresAt &&
+            this.subscription.expiresAt <= new Date()
+        ) {
+            this.subscription.isActive = false;
+            this.subscription.plan = "free";
+        }
+
         if (this.isModified("password") && this.password) {
             this.password = await hashPassword(this.password);
             this.lastPasswordChangedAt = new Date();
         }
     });
 
-    /**
-     * Compare Plain Password With Stored Hash
-     */
     schema.methods.comparePassword = async function (plainPassword) {
         if (!this.password) {
-            system_logger.error(
-                "Password field not selected in query."
-            );
+            system_logger.error("Password field not selected in query.");
+
             throw new InternalServerError({
                 message: "Internal authentication error",
             });
@@ -283,14 +361,10 @@ const User = createBaseModel("User", userSchemaDefinition, (schema) => {
         return verifyPassword(String(plainPassword || ""), this.password);
     };
 
-    /**
-     * Find User By Identifier
-     */
     schema.statics.findByIdentifier = function (identifier) {
         if (!identifier) {
-            system_logger.warn(
-                "Attempt to find user with empty identifier"
-            );
+            system_logger.warn("Attempt to find user with empty identifier");
+
             throw new BadRequestError({
                 message: "Identifier is required",
             });
@@ -308,9 +382,8 @@ const User = createBaseModel("User", userSchemaDefinition, (schema) => {
         const normalized = normalizeValue(String(identifier || ""));
 
         if (!normalized) {
-            system_logger.warn(
-                "Attempt to find user with empty identifier"
-            );
+            system_logger.warn("Attempt to find user with empty identifier");
+
             throw new BadRequestError({
                 message: "Email, username, or phone number is required",
             });
@@ -322,9 +395,6 @@ const User = createBaseModel("User", userSchemaDefinition, (schema) => {
         }).select("+password");
     };
 
-    /**
-     * Find User By Phone Number
-     */
     schema.statics.findByPhoneNumber = function (phoneNumber) {
         const normalized = normalizePhoneNumber(phoneNumber, "GH");
 
@@ -333,6 +403,7 @@ const User = createBaseModel("User", userSchemaDefinition, (schema) => {
                 { phoneNumber },
                 "Attempt to find user with invalid phone number"
             );
+
             throw new BadRequestError({
                 message: "Valid phone number is required",
             });
@@ -344,9 +415,6 @@ const User = createBaseModel("User", userSchemaDefinition, (schema) => {
         }).select("+password");
     };
 
-    /**
-     * FIND USER BY EMAIL
-     */
     schema.statics.findByEmail = function (email) {
         const normalized = assertValidNormalizedEmail(email);
 
@@ -356,9 +424,6 @@ const User = createBaseModel("User", userSchemaDefinition, (schema) => {
         }).select("+password");
     };
 
-    /**
-     * FIND USER BY USERNAME
-     */
     schema.statics.findByUsername = function (username) {
         const normalized = assertValidNormalizedUsername(username);
 
@@ -369,5 +434,12 @@ const User = createBaseModel("User", userSchemaDefinition, (schema) => {
     };
 });
 
-export { User, USERNAME_REGEX, PASSWORD_REGEX, USER_ROLES, userSchemaDefinition };
-export default User;
+export {
+    User,
+    USERNAME_REGEX,
+    PASSWORD_REGEX,
+    USER_ROLES,
+    SUBSCRIPTION_PLANS,
+    userSchemaDefinition,
+};
+

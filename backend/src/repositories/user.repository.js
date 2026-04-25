@@ -147,6 +147,76 @@ class UserRepository extends BaseRepository {
             options,
         });
     }
+
+        async activateSubscription(userId, plan = "premium", options = {}) {
+        const user = await this.findById(userId, {
+            ...options,
+            lean: false,
+        });
+
+        user.activateSubscription(plan);
+
+        await user.save({
+            session: options.session,
+        });
+
+        return user;
+    }
+
+    async renewSubscription(userId, plan = "premium", options = {}) {
+        const user = await this.findById(userId, {
+            ...options,
+            lean: false,
+        });
+
+        user.renewSubscription(plan);
+
+        await user.save({
+            session: options.session,
+        });
+
+        return user;
+    }
+
+    async cancelSubscription(userId, options = {}) {
+        const user = await this.findById(userId, {
+            ...options,
+            lean: false,
+        });
+
+        user.cancelSubscription();
+
+        await user.save({
+            session: options.session,
+        });
+
+        return user;
+    }
+
+    async expireSubscription(userId, options = {}) {
+        const user = await this.findById(userId, {
+            ...options,
+            lean: false,
+        });
+
+        user.expireSubscription();
+
+        await user.save({
+            session: options.session,
+        });
+
+        return user;
+    }
+
+    async findActiveSubscriptions(options = {}) {
+        return this.findAll(
+            { isDeleted: false },
+            {
+                ...options,
+                queryBuilder: (query) => query.activeSubscription(),
+            }
+        );
+    }
 }
 
 const userRepository = new UserRepository();

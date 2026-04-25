@@ -8,21 +8,6 @@ import {
 } from "../../utils/auth.cookies.js";
 import { generateCSRFToken } from "../../utils/csrf.js";
 
-/**
- * ---------------------------------------------------------
- * PAGE RENDER HELPER
- * ---------------------------------------------------------
- *
- * Purpose:
- * Creates a reusable route handler for rendering views.
- *
- * Behavior:
- * - Sends HTTP 200
- * - Renders specified view
- * - Injects title into template
- * - Issues CSRF token for secure browser forms
- * - Passes flash messages to the page
- */
 function renderPage(view, title) {
     return autoCatchFn(async (request, response) => {
         const csrfToken = generateCSRFToken();
@@ -39,33 +24,22 @@ function renderPage(view, title) {
     });
 }
 
-/**
- * ---------------------------------------------------------
- * AUTHENTICATION PAGE CONTROLLER
- * ---------------------------------------------------------
- *
- * Purpose:
- * Handles both:
- * - Authentication logic (POST requests)
- * - Authentication page rendering (GET requests)
- *
- * Responsibilities:
- * - Delegates business logic to AuthService
- * - Manages authentication cookies
- * - Handles CSRF protection
- * - Renders authentication-related views
- *
- * Important:
- * - Tokens are stored in cookies (never exposed to views)
- * - CSRF tokens are issued for browser security
- */
-class AuthPageController {
-    /**
-     * -----------------------------------------------------
-     * AUTH LOGIC (POST ROUTES)
-     * -----------------------------------------------------
-     */
+const getSafeRedirectPath = (request, fallback = "/dashboard") => {
+    const redirectTo = request.query?.redirectTo;
 
+    if (
+        typeof redirectTo === "string" &&
+        redirectTo.startsWith("/") &&
+        !redirectTo.startsWith("//") &&
+        !redirectTo.startsWith("/auth/page/refresh-token")
+    ) {
+        return redirectTo;
+    }
+
+    return fallback;
+};
+
+class AuthPageController {
     register = autoCatchFn(async (request, response) => {
         try {
             const result = await authService.register(request.body, request);
@@ -95,8 +69,7 @@ class AuthPageController {
                 oldInput: {
                     username: request.body?.username ?? "",
                     email: request.body?.email ?? "",
-                    phoneNumber: request.body?.phoneNumber ?? ""
-
+                    phoneNumber: request.body?.phoneNumber ?? "",
                 },
             });
         }
@@ -140,29 +113,37 @@ class AuthPageController {
             request.cookies?.[REFRESH_TOKEN_COOKIE_NAME] ??
             request.body?.refreshToken;
 
-        const result = await authService.refreshToken(
-            { refreshToken },
-            request
-        );
+        if (!refreshToken) {
+            clearAuthCookies(response);
+            request.flash?.("error", "Session expired. Please login again.");
 
-        const csrfToken = generateCSRFToken();
+            return response.redirect("/auth/page/login");
+        }
 
-        setAuthCookies(response, {
-            accessToken: result.accessToken,
-            refreshToken: result.refreshToken,
-        });
+        try {
+            const result = await authService.refreshToken(
+                { refreshToken },
+                request
+            );
 
-        setCSRFTokenCookie(response, csrfToken);
+            const csrfToken = generateCSRFToken();
 
-        request.flash?.("success", result.message);
+            setAuthCookies(response, {
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+            });
 
-        const redirectTo =
-            request.get("Referrer") ||
-            request.headers?.referer ||
-            request.originalUrl ||
-            "/dashboard";
+            setCSRFTokenCookie(response, csrfToken);
 
-        return response.redirect(redirectTo);
+            const redirectTo = getSafeRedirectPath(request, "/dashboard");
+
+            return response.redirect(redirectTo);
+        } catch (error) {
+            clearAuthCookies(response);
+            request.flash?.("error", "Session expired. Please login again.");
+
+            return response.redirect("/auth/page/login");
+        }
     });
 
     logout = autoCatchFn(async (request, response) => {
@@ -182,21 +163,10 @@ class AuthPageController {
         return response.redirect("/auth/page/login");
     });
 
-    /**
-     * -----------------------------------------------------
-     * AUTH VIEW RENDERING (GET ROUTES)
-     * -----------------------------------------------------
-     */
-
     getLoginPage = renderPage("pages/auth/login", "Login");
 
     getRegisterPage = renderPage("pages/auth/register", "Register");
 
-    /**
-     * -----------------------------------------------------
-     * CURRENT USER VIEW
-     * -----------------------------------------------------
-     */
     me = autoCatchFn(async (request, response) => {
         return response.status(200).render("me", {
             success: true,

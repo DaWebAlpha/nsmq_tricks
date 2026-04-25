@@ -48,6 +48,7 @@ const {
     JWT_ACCESS_SECRET,
     ACCESS_TOKEN_COOKIE_NAME,
     REFRESH_TOKEN_COOKIE_NAME,
+    SUBSCRIPTION_EXPIRY_TIME,
 } = process.env;
 
 /**
@@ -214,6 +215,8 @@ const config = Object.freeze({
      * Cookie name for refresh token
      */
     refresh_token_cookie_name: REFRESH_TOKEN_COOKIE_NAME,
+
+    subscription_expiry_time: toPositiveInt(SUBSCRIPTION_EXPIRY_TIME, 60 * 24 * 365 * 60000) // ONE YEAR IN MILLISECONDS
 });
 
 /**

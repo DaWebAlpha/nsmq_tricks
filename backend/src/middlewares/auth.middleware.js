@@ -17,16 +17,41 @@ const getAccessTokenFromRequest = (request) => {
     return request.cookies?.[ACCESS_TOKEN_COOKIE_NAME] ?? null;
 };
 
-/**
- * Normalize ID (supports both _id and id)
- */
 const resolveId = (doc) => doc?._id ?? doc?.id ?? null;
+
+const isAuthRoute = (request) => {
+    return request.originalUrl?.startsWith("/auth/");
+};
+
+const isApiRequest = (request) => {
+    return (
+        request.originalUrl?.startsWith("/auth/api") ||
+        request.xhr ||
+        request.headers?.accept?.includes("application/json")
+    );
+};
+
+const isPageRequest = (request) => {
+    return request.accepts("html") && !isApiRequest(request);
+};
+
+const redirectToRefresh = (request, response) => {
+    const redirectTo = encodeURIComponent(request.originalUrl || "/dashboard");
+
+    return response.redirect(
+        `/auth/page/refresh-token?redirectTo=${redirectTo}`
+    );
+};
 
 const authMiddleware = async (request, response, next) => {
     try {
         const token = getAccessTokenFromRequest(request);
 
         if (!token) {
+            if (isPageRequest(request) && !isAuthRoute(request)) {
+                return redirectToRefresh(request, response);
+            }
+
             return next(
                 new UnauthenticatedError({
                     message: "Unauthenticated - No token provided",
@@ -46,10 +71,6 @@ const authMiddleware = async (request, response, next) => {
             );
         }
 
-        /**
-         * IMPORTANT:
-         * Always fetch with lean: false to retain _id
-         */
         const user = await userRepository.findById(tokenUserId, {
             lean: false,
         });
@@ -97,6 +118,10 @@ const authMiddleware = async (request, response, next) => {
             },
             "Authentication failed"
         );
+
+        if (isPageRequest(request) && !isAuthRoute(request)) {
+            return redirectToRefresh(request, response);
+        }
 
         return next(
             new UnauthenticatedError({

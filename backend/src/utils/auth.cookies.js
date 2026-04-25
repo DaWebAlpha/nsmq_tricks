@@ -1,45 +1,21 @@
 import { config } from "../config/config.js";
 import { BadRequestError } from "../errors/badrequest.error.js";
 
-/**
- * ---------------------------------------------------------
- * AUTHENTICATION COOKIE HELPERS
- * ---------------------------------------------------------
- *
- * Purpose:
- * Centralizes secure cookie handling for authentication tokens.
- *
- * Responsibilities:
- * - Standardize cookie configuration across the application
- * - Prevent token leakage (httpOnly cookies)
- * - Enforce consistent security policies
- * - Provide reusable helpers for setting and clearing cookies
- */
-
 const {
     access_token_cookie_name,
     refresh_token_cookie_name,
     node_env,
 } = config;
 
-/**
- * ---------------------------------------------------------
- * CONSTANTS
- * ---------------------------------------------------------
- */
 const ACCESS_TOKEN_COOKIE_NAME = access_token_cookie_name;
 const REFRESH_TOKEN_COOKIE_NAME = refresh_token_cookie_name;
 const CSRF_TOKEN_COOKIE_NAME = "csrfToken";
 
 const IS_PRODUCTION = node_env === "production";
+
 const ACCESS_TOKEN_MAX_AGE_MS = 15 * 60 * 1000;
 const REFRESH_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
-/**
- * ---------------------------------------------------------
- * INTERNAL GUARDS
- * ---------------------------------------------------------
- */
 const assertResponse = (response) => {
     if (
         !response ||
@@ -60,14 +36,9 @@ const assertToken = (token, fieldName = "token") => {
     }
 };
 
-/**
- * ---------------------------------------------------------
- * COOKIE OPTIONS BUILDERS
- * ---------------------------------------------------------
- */
 const buildBaseCookieOptions = () => ({
     secure: IS_PRODUCTION,
-    sameSite: "strict",
+    sameSite: "lax",
     path: "/",
 });
 
@@ -93,11 +64,6 @@ const buildClearReadableCookieOptions = () => ({
     httpOnly: false,
 });
 
-/**
- * ---------------------------------------------------------
- * SET ACCESS TOKEN COOKIE
- * ---------------------------------------------------------
- */
 const setAccessTokenCookie = (response, token) => {
     assertResponse(response);
     assertToken(token, "Access token");
@@ -109,11 +75,6 @@ const setAccessTokenCookie = (response, token) => {
     );
 };
 
-/**
- * ---------------------------------------------------------
- * SET REFRESH TOKEN COOKIE
- * ---------------------------------------------------------
- */
 const setRefreshTokenCookie = (response, token) => {
     assertResponse(response);
     assertToken(token, "Refresh token");
@@ -125,11 +86,6 @@ const setRefreshTokenCookie = (response, token) => {
     );
 };
 
-/**
- * ---------------------------------------------------------
- * SET CSRF TOKEN COOKIE
- * ---------------------------------------------------------
- */
 const setCSRFTokenCookie = (response, token) => {
     assertResponse(response);
     assertToken(token, "CSRF token");
@@ -141,11 +97,6 @@ const setCSRFTokenCookie = (response, token) => {
     );
 };
 
-/**
- * ---------------------------------------------------------
- * SET AUTH COOKIES
- * ---------------------------------------------------------
- */
 const setAuthCookies = (
     response,
     { accessToken = null, refreshToken = null } = {}
@@ -156,11 +107,6 @@ const setAuthCookies = (
     if (refreshToken) setRefreshTokenCookie(response, refreshToken);
 };
 
-/**
- * ---------------------------------------------------------
- * CLEAR ACCESS TOKEN COOKIE
- * ---------------------------------------------------------
- */
 const clearAccessTokenCookie = (response) => {
     assertResponse(response);
 
@@ -170,11 +116,6 @@ const clearAccessTokenCookie = (response) => {
     );
 };
 
-/**
- * ---------------------------------------------------------
- * CLEAR REFRESH TOKEN COOKIE
- * ---------------------------------------------------------
- */
 const clearRefreshTokenCookie = (response) => {
     assertResponse(response);
 
@@ -184,11 +125,6 @@ const clearRefreshTokenCookie = (response) => {
     );
 };
 
-/**
- * ---------------------------------------------------------
- * CLEAR CSRF TOKEN COOKIE
- * ---------------------------------------------------------
- */
 const clearCSRFTokenCookie = (response) => {
     assertResponse(response);
 
@@ -198,11 +134,6 @@ const clearCSRFTokenCookie = (response) => {
     );
 };
 
-/**
- * ---------------------------------------------------------
- * CLEAR ALL AUTH COOKIES
- * ---------------------------------------------------------
- */
 const clearAuthCookies = (response) => {
     assertResponse(response);
 
