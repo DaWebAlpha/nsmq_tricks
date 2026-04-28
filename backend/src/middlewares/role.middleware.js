@@ -18,7 +18,7 @@ import { UnauthorizedError } from "../errors/unauthorized.error.js";
  */
 const roleMiddleware = (...allowedRoles) => {
     const normalizedAllowedRoles = allowedRoles
-        .map((role) => String(role || "").trim())
+        .map((role) => String(role || "").trim().toLowerCase())
         .filter(Boolean);
 
     if (normalizedAllowedRoles.length === 0) {
@@ -35,7 +35,7 @@ const roleMiddleware = (...allowedRoles) => {
             );
         }
 
-        const userRole = String(request.user.role || "").trim();
+        const userRole = String(request.user.role || "").trim().toLowerCase();
 
         if (!normalizedAllowedRoles.includes(userRole)) {
             return next(

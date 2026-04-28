@@ -3,22 +3,13 @@ import { autoCatchFn } from "../../utils/autoCatchFn.js";
 import {
     setAuthCookies,
     clearAuthCookies,
-    setCSRFTokenCookie,
     REFRESH_TOKEN_COOKIE_NAME,
 } from "../../utils/auth.cookies.js";
-import { generateCSRFToken } from "../../utils/csrf.js";
 
 function renderPage(view, title) {
     return autoCatchFn(async (request, response) => {
-        const csrfToken = generateCSRFToken();
-
-        setCSRFTokenCookie(response, csrfToken);
-
         return response.status(200).render(view, {
             title,
-            csrfToken,
-            success: request.flash?.("success")?.[0],
-            error: request.flash?.("error")?.[0],
             oldInput: {},
         });
     });
@@ -39,31 +30,26 @@ const getSafeRedirectPath = (request, fallback = "/dashboard") => {
     return fallback;
 };
 
+const adminRoles = ["moderator", "admin", "superadmin"];
+
 class AuthPageController {
     register = autoCatchFn(async (request, response) => {
         try {
             const result = await authService.register(request.body, request);
-            const csrfToken = generateCSRFToken();
 
             setAuthCookies(response, {
                 accessToken: result.accessToken,
                 refreshToken: result.refreshToken,
             });
 
-            setCSRFTokenCookie(response, csrfToken);
-
             request.flash?.("success", result.message);
 
             return response.redirect("/dashboard");
         } catch (error) {
-            const csrfToken = generateCSRFToken();
-
             clearAuthCookies(response);
-            setCSRFTokenCookie(response, csrfToken);
 
             return response.status(400).render("pages/auth/register", {
                 title: "Register",
-                csrfToken,
                 success: undefined,
                 error: error?.message || "Registration failed",
                 oldInput: {
@@ -78,27 +64,26 @@ class AuthPageController {
     login = autoCatchFn(async (request, response) => {
         try {
             const result = await authService.login(request.body, request);
-            const csrfToken = generateCSRFToken();
 
             setAuthCookies(response, {
                 accessToken: result.accessToken,
                 refreshToken: result.refreshToken,
             });
 
-            setCSRFTokenCookie(response, csrfToken);
-
             request.flash?.("success", result.message);
 
-            return response.redirect("/dashboard");
-        } catch (error) {
-            const csrfToken = generateCSRFToken();
+            if (adminRoles.includes(result.user.role)) {
+                return response.redirect("/admin/home");
+            }
 
+            const redirectTo = getSafeRedirectPath(request, "/dashboard");
+
+            return response.redirect(redirectTo);
+        } catch (error) {
             clearAuthCookies(response);
-            setCSRFTokenCookie(response, csrfToken);
 
             return response.status(401).render("pages/auth/login", {
                 title: "Login",
-                csrfToken,
                 success: undefined,
                 error: "Invalid credentials",
                 oldInput: {
@@ -126,14 +111,10 @@ class AuthPageController {
                 request
             );
 
-            const csrfToken = generateCSRFToken();
-
             setAuthCookies(response, {
                 accessToken: result.accessToken,
                 refreshToken: result.refreshToken,
             });
-
-            setCSRFTokenCookie(response, csrfToken);
 
             const redirectTo = getSafeRedirectPath(request, "/dashboard");
 
@@ -151,14 +132,18 @@ class AuthPageController {
             request.cookies?.[REFRESH_TOKEN_COOKIE_NAME] ??
             request.body?.refreshToken;
 
-        const result = await authService.logout(
-            { refreshToken },
-            request
-        );
+        if (refreshToken) {
+            const result = await authService.logout(
+                { refreshToken },
+                request
+            );
+
+            request.flash?.("success", result.message);
+        } else {
+            request.flash?.("success", "Logged out successfully");
+        }
 
         clearAuthCookies(response);
-
-        request.flash?.("success", result.message);
 
         return response.redirect("/auth/page/login");
     });
@@ -171,8 +156,6 @@ class AuthPageController {
         return response.status(200).render("me", {
             success: true,
             message: "Current user fetched successfully",
-            user: request.user,
-            security: request.userSecurity,
         });
     });
 }

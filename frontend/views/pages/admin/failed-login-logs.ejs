@@ -1,0 +1,65 @@
+<%- include("../../partials/header", {title: "Failed Login Logs"}) %>
+<%- include("../../partials/navigation_nav", {
+    nav1: "/admin/failed-login-logs",
+    title1: "Failed Logs",
+    nav2: "/admin/home",
+    title2: "Go back home"
+}) %>
+
+<main role="main" class="admin__main">
+    <section class="admin__hero">
+        <div class="container">
+            <div class="admin__hero-card">
+                <p class="admin__eyebrow">Security Monitoring</p>
+                <h1 class="admin__title">Failed Login Logs</h1>
+                <p class="admin__text">
+                    Track failed login attempts, suspicious devices, IP addresses, and reasons.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <article class="admin__panel">
+                <header class="admin__panel-header">
+                    <div>
+                        <p class="admin__eyebrow">Failed Attempts</p>
+                        <h2>Authentication Failures</h2>
+                    </div>
+                </header>
+
+                <% if (typeof failedLogs !== "undefined" && failedLogs?.length) { %>
+                    <div class="table-wrapper">
+                        <table class="table">
+                            <thead class="table__header">
+                                <tr class="table__row">
+                                    <th class="table__cell">Identifier</th>
+                                    <th class="table__cell">Reason</th>
+                                    <th class="table__cell">IP Address</th>
+                                    <th class="table__cell">Device</th>
+                                    <th class="table__cell">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody class="table__body">
+                                <% failedLogs.forEach((log) => { %>
+                                    <tr class="table__row">
+                                        <td class="table__cell"><%= log?.identifier ?? "N/A" %></td>
+                                        <td class="table__cell"><span class="badge error__badge"><%= log?.reason ?? "unknown" %></span></td>
+                                        <td class="table__cell"><%= log?.ipAddress ?? "N/A" %></td>
+                                        <td class="table__cell"><%= log?.deviceName ?? "N/A" %></td>
+                                        <td class="table__cell"><%= log?.createdAt ? new Date(log.createdAt).toLocaleString() : "N/A" %></td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="alert info__alert">No failed login logs available yet.</div>
+                <% } %>
+            </article>
+        </div>
+    </section>
+</main>
+
+<%- include("../../partials/admin_footer") %>

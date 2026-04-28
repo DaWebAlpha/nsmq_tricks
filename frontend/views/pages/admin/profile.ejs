@@ -1,0 +1,76 @@
+<%- include("../../partials/header", {title: "Admin Profile"}) %>
+<%- include("../../partials/navigation_nav", {
+    nav1: "/admin/profile",
+    title1: "Profile",
+    nav2: "/admin/home",
+    title2: "Go back home"
+}) %>
+
+<main role="main" class="admin__main">
+    <section class="admin__hero">
+        <div class="container">
+            <div class="admin__hero-card">
+                <p class="admin__eyebrow">Admin Account</p>
+                <h1 class="admin__title">My Profile</h1>
+                <p class="admin__text">
+                    View your administrator account details, role, and security status.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <% if (success) { %>
+                <div class="alert success__alert"><%= success %></div>
+            <% } %>
+
+            <% if (error) { %>
+                <div class="alert error__alert"><%= error %></div>
+            <% } %>
+
+            <article class="admin__panel">
+                <header class="admin__panel-header">
+                    <div>
+                        <p class="admin__eyebrow">Profile Information</p>
+                        <h2>Account Details</h2>
+                    </div>
+                </header>
+
+                <div class="admin__metric-list">
+                    <div class="admin__metric-item">
+                        <span>Username</span>
+                        <strong><%= user?.username ?? "N/A" %></strong>
+                    </div>
+
+                    <div class="admin__metric-item">
+                        <span>Email</span>
+                        <strong><%= user?.email ?? "N/A" %></strong>
+                    </div>
+
+                    <div class="admin__metric-item">
+                        <span>Phone Number</span>
+                        <strong><%= user?.phoneNumber ?? "N/A" %></strong>
+                    </div>
+
+                    <div class="admin__metric-item">
+                        <span>Role</span>
+                        <strong><%= user?.role ?? "N/A" %></strong>
+                    </div>
+
+                    <div class="admin__metric-item">
+                        <span>Subscription Plan</span>
+                        <strong><%= user?.subscription?.plan ?? "free" %></strong>
+                    </div>
+
+                    <div class="admin__metric-item">
+                        <span>Subscription Active</span>
+                        <strong><%= user?.subscription?.isActive ? "Yes" : "No" %></strong>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </section>
+</main>
+
+<%- include("../../partials/admin_footer") %>

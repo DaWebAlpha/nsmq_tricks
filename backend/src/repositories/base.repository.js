@@ -221,10 +221,9 @@ class BaseRepository {
 
     async count(filter = {}, options = {}) {
         const query = this.model.countDocuments(filter);
-
         if (options.session) query.session(options.session);
-
-        return query;
+        const total = await query
+        return total;
     }
 }
 

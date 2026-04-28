@@ -101,7 +101,7 @@ export const redisRateLimit = ({
         res.setHeader('Retry-After', ttl > 0 ? ttl : windowInSeconds);
 
         return next(
-          new TooManyRequestError({
+          new TooManyRequestsError({
             message,
           })
         );

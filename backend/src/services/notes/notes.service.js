@@ -3,16 +3,22 @@ import { audit_logger } from "../../core/pino.logger.js";
 import { normalizeValue } from "../../utils/string.utils.js";
 import { BadRequestError } from "../../errors/badrequest.error.js";
 import { NotFoundError } from "../../errors/notfound.error.js";
-import { ForbiddenError } from "../../errors/forbidden.error.js";
+import { UnauthorizedError } from "../../errors/unauthorized.error.js";
+import { adminActivityRepository } from "../../repositories/adminActivity.repository.js";
+import { ADMIN_ACTIVITY_ACTIONS } from "../../models/admin/adminActivity.model.js";
 
 const coerceBooleanField = (value) => {
     return value === "on" || value === true || value === "true";
 };
 
+const resolveId = (doc) => doc?.id ?? doc?._id ?? null;
+
 const buildNotesFilter = (filter = {}) => {
-    const safeFilter = {
-        isDeleted: false,
-    };
+    const safeFilter = {};
+
+    if (filter.isDeleted !== undefined) {
+        safeFilter.isDeleted = filter.isDeleted;
+    }
 
     if (filter.subject) {
         safeFilter.subject = normalizeValue(String(filter.subject));
@@ -33,8 +39,29 @@ const buildNotesFilter = (filter = {}) => {
     return safeFilter;
 };
 
+const buildActiveNotesFilter = (filter = {}) => {
+    return buildNotesFilter({
+        ...filter,
+        isDeleted: false,
+    });
+};
+
+const buildAllNotesFilter = (filter = {}) => {
+    return buildNotesFilter({
+        ...filter,
+        isDeleted: { $in: [true, false] },
+    });
+};
+
+const buildDeletedNotesFilter = (filter = {}) => {
+    return buildNotesFilter({
+        ...filter,
+        isDeleted: true,
+    });
+};
+
 class NotesService {
-    async createNote(payload = {}, userId) {
+    async createNote(payload = {}, userId, auditMeta = {}) {
         const subject = normalizeValue(String(payload?.subject ?? ""));
         const topic = normalizeValue(String(payload?.topic ?? ""));
         const subTopic = normalizeValue(String(payload?.subTopic ?? ""));
@@ -58,9 +85,24 @@ class NotesService {
             isPremium,
         });
 
+        await adminActivityRepository.create({
+            actorId: userId,
+            targetNoteId: resolveId(note),
+            action: ADMIN_ACTIVITY_ACTIONS.CREATE_NOTE,
+            description: "Admin created a note",
+            metadata: {
+                subject,
+                topic,
+                subTopic,
+                isPremium,
+            },
+            ...auditMeta,
+        });
+
         audit_logger.info({
             userId,
-            noteId: note.id ?? note._id,
+            noteId: resolveId(note),
+            ...auditMeta,
             message: `Note ${note.subTopic} under ${note.topic}-${note.subject} created`,
         });
 
@@ -70,10 +112,49 @@ class NotesService {
         };
     }
 
-    async getAllNotes(filter = {}, options = {}) {
-        const safeFilter = buildNotesFilter(filter);
+    async getTotalActiveNotes(filter = {}, options = {}) {
+        const activeNotesFilter = buildActiveNotesFilter(filter);
 
-        const result = await notesRepository.findAll(safeFilter, options);
+        const result = await notesRepository.count(activeNotesFilter, options);
+
+        return {
+            totalActiveNotes: result,
+        };
+    }
+
+    async getAllActiveNotes(filter = {}, options = {}) {
+        const activeNotesFilter = buildActiveNotesFilter(filter);
+
+        const result = await notesRepository.findAll(activeNotesFilter, options);
+
+        return {
+            notes: result.docs ?? [],
+            pagination: {
+                total: result.total ?? 0,
+                page: result.page ?? 1,
+                limit: result.limit ?? 10,
+                totalPages: result.totalPages ?? 0,
+            },
+            message: result.docs?.length
+                ? "Successfully retrieved active notes"
+                : "No active notes found",
+        };
+    }
+
+    async getTotalNotes(filter = {}, options = {}) {
+        const allNotesFilter = buildAllNotesFilter(filter);
+
+        const result = await notesRepository.count(allNotesFilter, options);
+
+        return {
+            totalNotes: result,
+        };
+    }
+
+    async getAllNotes(filter = {}, options = {}) {
+        const allNotesFilter = buildAllNotesFilter(filter);
+
+        const result = await notesRepository.findAll(allNotesFilter, options);
 
         return {
             notes: result.docs ?? [],
@@ -86,6 +167,35 @@ class NotesService {
             message: result.docs?.length
                 ? "Successfully retrieved notes"
                 : "No notes found",
+        };
+    }
+
+    async getTotalDeletedNotes(filter = {}, options = {}) {
+        const deletedNotesFilter = buildDeletedNotesFilter(filter);
+
+        const result = await notesRepository.count(deletedNotesFilter, options);
+
+        return {
+            totalDeletedNotes: result,
+        };
+    }
+
+    async getAllDeletedNotes(filter = {}, options = {}) {
+        const deletedNotesFilter = buildDeletedNotesFilter(filter);
+
+        const result = await notesRepository.findAll(deletedNotesFilter, options);
+
+        return {
+            notes: result.docs ?? [],
+            pagination: {
+                total: result.total ?? 0,
+                page: result.page ?? 1,
+                limit: result.limit ?? 10,
+                totalPages: result.totalPages ?? 0,
+            },
+            message: result.docs?.length
+                ? "Successfully retrieved deleted notes"
+                : "No deleted notes found",
         };
     }
 
@@ -106,7 +216,7 @@ class NotesService {
         };
     }
 
-    async editNote(noteId, payload = {}, userId, options = {}) {
+    async editNote(noteId, payload = {}, userId, options = {}, auditMeta = {}) {
         if (!noteId) {
             throw new BadRequestError({ message: "Note id is required" });
         }
@@ -121,8 +231,13 @@ class NotesService {
             throw new NotFoundError({ message: "Note not found" });
         }
 
-        if (String(existing.createdBy) !== String(userId)) {
-            throw new ForbiddenError({
+        const shouldRequireOwnership = options.requireOwnership !== false;
+
+        if (
+            shouldRequireOwnership &&
+            String(existing.createdBy) !== String(userId)
+        ) {
+            throw new UnauthorizedError({
                 message: "Not authorised to edit this note",
             });
         }
@@ -171,9 +286,19 @@ class NotesService {
             options
         );
 
+        await adminActivityRepository.create({
+            actorId: userId,
+            targetNoteId: resolveId(note),
+            action: ADMIN_ACTIVITY_ACTIONS.UPDATE_NOTE,
+            description: "Admin updated a note",
+            metadata: updateData,
+            ...auditMeta,
+        });
+
         audit_logger.info({
             userId,
-            noteId: note.id ?? note._id,
+            noteId: resolveId(note),
+            ...auditMeta,
             message: `Note ${note.subTopic} updated`,
         });
 
@@ -183,7 +308,7 @@ class NotesService {
         };
     }
 
-    async deleteNote(noteId, userId) {
+    async deleteNote(noteId, userId, options = {}, auditMeta = {}) {
         if (!noteId) {
             throw new BadRequestError({ message: "NoteId is required" });
         }
@@ -200,17 +325,34 @@ class NotesService {
             throw new NotFoundError({ message: "Note not found" });
         }
 
-        if (String(note.createdBy) !== String(userId)) {
-            throw new ForbiddenError({
+        const shouldRequireOwnership = options.requireOwnership !== false;
+
+        if (
+            shouldRequireOwnership &&
+            String(note.createdBy) !== String(userId)
+        ) {
+            throw new UnauthorizedError({
                 message: "Not authorised to delete this note",
             });
         }
 
         await note.softDelete(userId);
 
+        await adminActivityRepository.create({
+            actorId: userId,
+            targetNoteId: resolveId(note),
+            action: ADMIN_ACTIVITY_ACTIONS.DELETE_NOTE,
+            description: "Admin deleted a note",
+            metadata: {
+                deletedAt: note.deletedAt,
+            },
+            ...auditMeta,
+        });
+
         audit_logger.info({
             userId,
-            noteId: note.id ?? note._id,
+            noteId: resolveId(note),
+            ...auditMeta,
             message: "Note has been soft deleted",
         });
 
@@ -223,4 +365,5 @@ class NotesService {
 
 const notesService = new NotesService();
 
-export { notesService };
+export { notesService, NotesService };
+export default notesService;

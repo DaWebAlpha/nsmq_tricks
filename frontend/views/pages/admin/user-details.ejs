@@ -1,0 +1,131 @@
+<%- include("../../partials/header", {title: "User Details"}) %>
+<%- include("../../partials/navigation_nav", {
+    nav1: "/admin/users",
+    title1: "Users",
+    nav2: "/admin/users",
+    title2: "Back to users"
+}) %>
+
+<main role="main" class="admin__main">
+    <section class="admin__hero">
+        <div class="container">
+            <div class="admin__hero-card">
+                <p class="admin__eyebrow">User Details</p>
+                <h1 class="admin__title"><%= user?.username ?? "User" %></h1>
+                <p class="admin__text">View and manage this user's account details.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <article class="admin__panel">
+                <header class="admin__panel-header">
+                    <div>
+                        <p class="admin__eyebrow">Edit User</p>
+                        <h2>Account Information</h2>
+                    </div>
+                </header>
+
+                <form action="/admin/users/<%= user?.id ?? user?._id %>/update" method="POST" class="form">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+                    <div class="grid__3">
+                        <div class="form__group">
+                            <label class="form__label">Username</label>
+                            <input class="input" type="text" name="username" value="<%= user?.username ?? '' %>" required>
+                        </div>
+
+                        <div class="form__group">
+                            <label class="form__label">Email</label>
+                            <input class="input" type="email" name="email" value="<%= user?.email ?? '' %>" required>
+                        </div>
+
+                        <div class="form__group">
+                            <label class="form__label">Phone Number</label>
+                            <input class="input" type="text" name="phoneNumber" value="<%= user?.phoneNumber ?? '' %>" required>
+                        </div>
+
+                        <div class="form__group">
+                            <label class="form__label">Role</label>
+                            <select class="select" name="role">
+                                <option value="user" <%= user?.role === "user" ? "selected" : "" %>>User</option>
+                                <option value="moderator" <%= user?.role === "moderator" ? "selected" : "" %>>Moderator</option>
+                                <option value="admin" <%= user?.role === "admin" ? "selected" : "" %>>Admin</option>
+                                <option value="superadmin" <%= user?.role === "superadmin" ? "selected" : "" %>>Super Admin</option>
+                            </select>
+                        </div>
+
+                        <div class="form__group">
+                            <label class="form__label">Subscription Plan</label>
+                            <select class="select" name="subscription[plan]">
+                                <option value="free" <%= user?.subscription?.plan === "free" ? "selected" : "" %>>Free</option>
+                                <option value="premium" <%= user?.subscription?.plan === "premium" ? "selected" : "" %>>Premium</option>
+                                <option value="pro" <%= user?.subscription?.plan === "pro" ? "selected" : "" %>>Pro</option>
+                                <option value="enterprise" <%= user?.subscription?.plan === "enterprise" ? "selected" : "" %>>Enterprise</option>
+                            </select>
+                        </div>
+
+                        <div class="form__group">
+                            <label class="form__label">Subscription Active</label>
+                            <select class="select" name="subscription[isActive]">
+                                <option value="false" <%= !user?.subscription?.isActive ? "selected" : "" %>>No</option>
+                                <option value="true" <%= user?.subscription?.isActive ? "selected" : "" %>>Yes</option>
+                            </select>
+                        </div>
+
+                        <div class="form__group">
+                            <label class="form__label">Expires At</label>
+                            <input
+                                class="input"
+                                type="date"
+                                name="subscription[expiresAt]"
+                                value="<%= user?.subscription?.expiresAt ? new Date(user.subscription.expiresAt).toISOString().slice(0, 10) : '' %>"
+                            >
+                        </div>
+                    </div>
+
+                    <button type="submit" class="main__button button__text btn">Update User</button>
+                </form>
+            </article>
+
+            <br>
+
+            <article class="admin__panel">
+                <header class="admin__panel-header">
+                    <div>
+                        <p class="admin__eyebrow">Quick Actions</p>
+                        <h2>User Actions</h2>
+                    </div>
+                </header>
+
+                <div class="button__group">
+                    <form action="/admin/users/<%= user?.id ?? user?._id %>/subscription/activate" method="POST">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <input type="hidden" name="plan" value="premium">
+                        <button class="btn success__button" type="submit">Activate Premium</button>
+                    </form>
+
+                    <form action="/admin/users/<%= user?.id ?? user?._id %>/subscription/cancel" method="POST">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button class="btn warning__button" type="submit">Cancel Subscription</button>
+                    </form>
+
+                    <% if (user?.isDeleted) { %>
+                        <form action="/admin/users/<%= user?.id ?? user?._id %>/restore" method="POST">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button class="btn success__button" type="submit">Restore User</button>
+                        </form>
+                    <% } else { %>
+                        <form action="/admin/users/<%= user?.id ?? user?._id %>/delete" method="POST">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button class="btn error__button" type="submit">Delete User</button>
+                        </form>
+                    <% } %>
+                </div>
+            </article>
+        </div>
+    </section>
+</main>
+
+<%- include("../../partials/admin_footer") %>

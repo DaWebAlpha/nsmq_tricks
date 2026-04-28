@@ -1,0 +1,68 @@
+<%- include("../../partials/header", {title: "Admin Home"}) %>
+<%- include("../../partials/admin_home_nav") %>
+
+
+<main role="main" class="admin__main">
+    <section class="admin__hero">
+        <div class="container">
+            <div class="admin__hero-card">
+                <p class="admin__eyebrow">Admin Control Center</p>
+                <h1 class="admin__title">Welcome, <%= user?.username ?? "Admin" %></h1>
+                <h2 class="admin__text">Role: <%= user?.role ?? "Admin" %></h2>
+                <p class="admin__text">
+                    Manage platform users, notes, security logs, subscriptions, and administrative settings from one place.
+                </p>
+
+                <div class="admin__actions">
+                    <a href="/admin/dashboard" class="main__button button__text btn">View Dashboard</a>
+                    <a href="/admin/users" class="main__button button__text btn">Manage Users</a>
+                    <a href="/admin/notes" class="main__button button__text btn">Manage Notes</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <div class="admin__grid">
+                <a href="/admin/users" class="admin__card">
+                    <span class="admin__card-icon">👥</span>
+                    <h3>Users</h3>
+                    <p>Create, update, delete, restore, and manage platform users.</p>
+                </a>
+
+                <a href="/admin/notes" class="admin__card">
+                    <span class="admin__card-icon">📚</span>
+                    <h3>Notes</h3>
+                    <p>Manage academic notes, premium content, subjects, topics, and subtopics.</p>
+                </a>
+
+                <a href="/admin/security" class="admin__card">
+                    <span class="admin__card-icon">🔐</span>
+                    <h3>Security</h3>
+                    <p>Review security status, account safety, roles, and access control.</p>
+                </a>
+
+                <a href="/admin/login-logs" class="admin__card">
+                    <span class="admin__card-icon">📜</span>
+                    <h3>Login Logs</h3>
+                    <p>Monitor successful login activity and account access records.</p>
+                </a>
+
+                <a href="/admin/failed-login-logs" class="admin__card">
+                    <span class="admin__card-icon">🚨</span>
+                    <h3>Failed Logins</h3>
+                    <p>Track failed login attempts and suspicious account activity.</p>
+                </a>
+
+                <a href="/admin/settings" class="admin__card">
+                    <span class="admin__card-icon">⚙️</span>
+                    <h3>Settings</h3>
+                    <p>Manage administrative preferences and platform configuration.</p>
+                </a>
+            </div>
+        </div>
+    </section>
+</main>
+
+<%- include("../../partials/admin_footer") %>

@@ -1,0 +1,72 @@
+<%- include("../../partials/header", {title: "Admin Settings"}) %>
+<%- include("../../partials/navigation_nav", {
+    nav1: "/admin/settings",
+    title1: "Settings",
+    nav2: "/admin/home",
+    title2: "Go back home"
+}) %>
+
+<main role="main" class="admin__main">
+    <section class="admin__hero">
+        <div class="container">
+            <div class="admin__hero-card">
+                <p class="admin__eyebrow">Configuration</p>
+                <h1 class="admin__title">Admin Settings</h1>
+                <p class="admin__text">
+                    Manage platform preferences, system configuration, and administrative options.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <div class="admin__analytics-grid">
+                <article class="admin__panel">
+                    <header class="admin__panel-header">
+                        <div>
+                            <p class="admin__eyebrow">Platform</p>
+                            <h2>System Settings</h2>
+                        </div>
+                    </header>
+
+                    <div class="admin__metric-list">
+                        <div class="admin__metric-item">
+                            <span>Environment</span>
+                            <strong><%= typeof environment !== "undefined" ? environment : "N/A" %></strong>
+                        </div>
+
+                        <div class="admin__metric-item">
+                            <span>Maintenance Mode</span>
+                            <strong><%= typeof maintenanceMode !== "undefined" && maintenanceMode ? "Enabled" : "Disabled" %></strong>
+                        </div>
+
+                        <div class="admin__metric-item">
+                            <span>Registration</span>
+                            <strong><%= typeof registrationEnabled !== "undefined" && registrationEnabled ? "Open" : "Open" %></strong>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="admin__panel">
+                    <header class="admin__panel-header">
+                        <div>
+                            <p class="admin__eyebrow">Shortcuts</p>
+                            <h2>Admin Tools</h2>
+                        </div>
+                    </header>
+
+                    <div class="admin__shortcut-list">
+                        <a href="/admin/users">Manage Users</a>
+                        <a href="/admin/notes">Manage Notes</a>
+                        <a href="/admin/security">Security</a>
+                        <a href="/admin/login-logs">Login Logs</a>
+                        <a href="/admin/failed-login-logs">Failed Logs</a>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+</main>
+
+<%- include("../../partials/admin_footer") %>

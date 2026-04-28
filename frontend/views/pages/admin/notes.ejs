@@ -1,0 +1,226 @@
+<%- include("../../partials/header", {title: title ?? "Notes"}) %>
+<%- include("../../partials/navigation_nav", {
+    nav1: "/admin/notes",
+    title1: "Notes",
+    nav2: "/admin/home",
+    title2: "Go back home"
+}) %>
+
+<main role="main" class="admin__main">
+    <section class="admin__hero">
+        <div class="container">
+            <div class="admin__hero-card">
+                <p class="admin__eyebrow">Notes Management</p>
+                <h1 class="admin__title"><%= title ?? "Manage Notes" %></h1>
+                <p class="admin__text">
+                    Create, edit, delete, and manage learning notes for students.
+                </p>
+
+                <div class="admin__actions">
+                    <a href="/admin/notes" class="main__button button__text btn">All Notes</a>
+                    <a href="/admin/notes/active" class="main__button button__text btn">Active Notes</a>
+                    <a href="/admin/notes/deleted" class="main__button button__text btn">Deleted Notes</a>
+                    <a href="/admin/notes/create" class="main__button button__text btn">Create Note</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <% if (success) { %>
+                <div class="alert success__alert"><%= success %></div>
+            <% } %>
+
+            <% if (error) { %>
+                <div class="alert error__alert"><%= error %></div>
+            <% } %>
+
+            <% if (title === "Create Notes") { %>
+                <article class="admin__panel">
+                    <header class="admin__panel-header">
+                        <div>
+                            <p class="admin__eyebrow">Create Note</p>
+                            <h2>New Note</h2>
+                        </div>
+                    </header>
+
+                    <form action="/admin/notes" method="POST" class="form">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+                        <div class="grid__3">
+                            <input class="input" type="text" name="subject" placeholder="Subject" value="<%= oldInput?.subject ?? '' %>" required>
+                            <input class="input" type="text" name="topic" placeholder="Topic" value="<%= oldInput?.topic ?? '' %>" required>
+                            <input class="input" type="text" name="subTopic" placeholder="Sub Topic" value="<%= oldInput?.subTopic ?? '' %>" required>
+                        </div>
+
+                        <br>
+
+                        <textarea class="textarea" name="content" placeholder="Content" required><%= oldInput?.content ?? '' %></textarea>
+
+                        <br><br>
+
+                        <label class="checkbox">
+                            <input type="checkbox" name="isPremium" <%= oldInput?.isPremium ? "checked" : "" %>>
+                            Premium Note
+                        </label>
+
+                        <br><br>
+
+                        <button type="submit" class="main__button button__text btn">Create Note</button>
+                    </form>
+                </article>
+            <% } else if (title === "Edit Note") { %>
+                <article class="admin__panel">
+                    <header class="admin__panel-header">
+                        <div>
+                            <p class="admin__eyebrow">Edit Note</p>
+                            <h2><%= note?.subTopic ?? "Update Note" %></h2>
+                        </div>
+                    </header>
+
+                    <form action="/admin/notes/<%= noteId %>/update" method="POST" class="form">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+                        <div class="grid__3">
+                            <input class="input" type="text" name="subject" value="<%= oldInput?.subject ?? '' %>" required>
+                            <input class="input" type="text" name="topic" value="<%= oldInput?.topic ?? '' %>" required>
+                            <input class="input" type="text" name="subTopic" value="<%= oldInput?.subTopic ?? '' %>" required>
+                        </div>
+
+                        <br>
+
+                        <textarea class="textarea" name="content" required><%= oldInput?.content ?? '' %></textarea>
+
+                        <br><br>
+
+                        <label class="checkbox">
+                            <input type="checkbox" name="isPremium" <%= oldInput?.isPremium ? "checked" : "" %>>
+                            Premium Note
+                        </label>
+
+                        <br><br>
+
+                        <button type="submit" class="main__button button__text btn">Update Note</button>
+                    </form>
+                </article>
+            <% } else if (title === "View Note") { %>
+                <article class="admin__panel">
+                    <header class="admin__panel-header">
+                        <div>
+                            <p class="admin__eyebrow"><%= note?.subject ?? "Subject" %></p>
+                            <h2><%= note?.subTopic ?? "Note Details" %></h2>
+                        </div>
+
+                        <a href="/admin/notes/<%= noteId %>/edit">Edit Note</a>
+                    </header>
+
+                    <div class="admin__metric-list">
+                        <div class="admin__metric-item">
+                            <span>Subject</span>
+                            <strong><%= note?.subject ?? "N/A" %></strong>
+                        </div>
+
+                        <div class="admin__metric-item">
+                            <span>Topic</span>
+                            <strong><%= note?.topic ?? "N/A" %></strong>
+                        </div>
+
+                        <div class="admin__metric-item">
+                            <span>Premium</span>
+                            <strong><%= note?.isPremium ? "Yes" : "No" %></strong>
+                        </div>
+                    </div>
+
+                    <br>
+
+                    <div class="card">
+                        <div class="card__body">
+                            <p><%= note?.content ?? "No content available." %></p>
+                        </div>
+                    </div>
+                </article>
+            <% } else { %>
+                <article class="admin__panel">
+                    <header class="admin__panel-header">
+                        <div>
+                            <p class="admin__eyebrow">Filters</p>
+                            <h2>Search Notes</h2>
+                        </div>
+                    </header>
+
+                    <form action="/admin/notes" method="GET" class="form">
+                        <div class="grid__4">
+                            <input class="input" type="text" name="subject" placeholder="Subject" value="<%= filters?.subject ?? '' %>">
+                            <input class="input" type="text" name="topic" placeholder="Topic" value="<%= filters?.topic ?? '' %>">
+                            <input class="input" type="text" name="subTopic" placeholder="Sub Topic" value="<%= filters?.subTopic ?? '' %>">
+
+                            <select class="select" name="isPremium">
+                                <option value="">Premium Status</option>
+                                <option value="true" <%= filters?.isPremium === "true" ? "selected" : "" %>>Premium</option>
+                                <option value="false" <%= filters?.isPremium === "false" ? "selected" : "" %>>Free</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="main__button button__text btn">Apply Filters</button>
+                    </form>
+                </article>
+
+                <br>
+
+                <article class="admin__panel">
+                    <header class="admin__panel-header">
+                        <div>
+                            <p class="admin__eyebrow">Notes Table</p>
+                            <h2><%= title ?? "Manage Notes" %></h2>
+                        </div>
+                    </header>
+
+                    <% if (notes?.length) { %>
+                        <div class="table-wrapper">
+                            <table class="table">
+                                <thead class="table__header">
+                                    <tr class="table__row">
+                                        <th class="table__cell">Subject</th>
+                                        <th class="table__cell">Topic</th>
+                                        <th class="table__cell">Sub Topic</th>
+                                        <th class="table__cell">Premium</th>
+                                        <th class="table__cell">Actions</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody class="table__body">
+                                    <% notes.forEach((item) => { %>
+                                        <tr class="table__row">
+                                            <td class="table__cell"><%= item?.subject ?? "N/A" %></td>
+                                            <td class="table__cell"><%= item?.topic ?? "N/A" %></td>
+                                            <td class="table__cell"><%= item?.subTopic ?? "N/A" %></td>
+                                            <td class="table__cell">
+                                                <span class="badge <%= item?.isPremium ? 'success__badge' : 'info__badge' %>">
+                                                    <%= item?.isPremium ? "Premium" : "Free" %>
+                                                </span>
+                                            </td>
+                                            <td class="table__cell table__actions">
+                                                <a href="/admin/notes/<%= item?.id ?? item?._id %>" class="btn button__sm info__button">View</a>
+                                                <a href="/admin/notes/<%= item?.id ?? item?._id %>/edit" class="btn button__sm warning__button">Edit</a>
+
+                                                <form action="/admin/notes/<%= item?.id ?? item?._id %>/delete" method="POST" style="display:inline;">
+                                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                                    <button class="btn button__sm error__button" type="submit">Delete</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } else { %>
+                        <div class="alert info__alert">No notes found.</div>
+                    <% } %>
+                </article>
+            <% } %>
+        </div>
+    </section>
+</main>
+
+<%- include("../../partials/admin_footer") %>

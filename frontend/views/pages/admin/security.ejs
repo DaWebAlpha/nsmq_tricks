@@ -1,0 +1,70 @@
+<%- include("../../partials/header", {title: "Security"}) %>
+<%- include("../../partials/navigation_nav", {
+    nav1: "/admin/security",
+    title1: "Security",
+    nav2: "/admin/home",
+    title2: "Go back home"
+}) %>
+
+<main role="main" class="admin__main">
+    <section class="admin__hero">
+        <div class="container">
+            <div class="admin__hero-card">
+                <p class="admin__eyebrow">Security Center</p>
+                <h1 class="admin__title">Account Security</h1>
+                <p class="admin__text">
+                    Review your account status, lock state, ban state, and security metadata.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <article class="admin__panel">
+                <header class="admin__panel-header">
+                    <div>
+                        <p class="admin__eyebrow">Security Overview</p>
+                        <h2>Security Status</h2>
+                    </div>
+                </header>
+
+                <div class="admin__metric-list">
+                    <div class="admin__metric-item">
+                        <span>Account Status</span>
+                        <strong><%= security?.accountStatus ?? "N/A" %></strong>
+                    </div>
+
+                    <div class="admin__metric-item">
+                        <span>Login Attempts</span>
+                        <strong><%= security?.loginAttempts ?? 0 %></strong>
+                    </div>
+
+                    <div class="admin__metric-item">
+                        <span>Locked</span>
+                        <strong><%= security?.isLocked ? "Yes" : "No" %></strong>
+                    </div>
+
+                    <div class="admin__metric-item">
+                        <span>Banned</span>
+                        <strong><%= security?.isBanned ? "Yes" : "No" %></strong>
+                    </div>
+
+                    <div class="admin__metric-item">
+                        <span>Suspended</span>
+                        <strong><%= security?.isSuspended ? "Yes" : "No" %></strong>
+                    </div>
+
+                    <div class="admin__metric-item">
+                        <span>Last Login</span>
+                        <strong>
+                            <%= security?.lastLoginAt ? new Date(security.lastLoginAt).toLocaleString() : "Never" %>
+                        </strong>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </section>
+</main>
+
+<%- include("../../partials/admin_footer") %>

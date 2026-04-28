@@ -1,5 +1,6 @@
-import { notesService } from "../../services/notes.service.js";
+import { notesService } from "../../services/notes/notes.service.js";
 import { autoCatchFn } from "../../utils/autoCatchFn.js";
+import { getAdminAuditMeta } from "../../utils/admin.audit.js";
 
 const getUserId = (request) => {
     return request.user?.id ?? request.user?._id;
@@ -35,10 +36,32 @@ const renderNotesPage = (response, data = {}) => {
         noteId: data.noteId ?? data.note?._id ?? data.note?.id ?? null,
         pagination: data.pagination ?? null,
         oldInput: data.oldInput ?? getOldInput(),
+        filters: data.filters ?? {},
+        totalActiveNotes: data.totalActiveNotes ?? 0,
+        totalNotes: data.totalNotes ?? 0,
+        totalDeletedNotes: data.totalDeletedNotes ?? 0,
     });
 };
 
 class NotesController {
+    getAllActiveNotes = autoCatchFn(async (request, response) => {
+        const { page, limit, subject, topic, subTopic, isPremium } = request.query;
+
+        const result = await notesService.getAllActiveNotes(
+            { subject, topic, subTopic, isPremium },
+            { page, limit }
+        );
+
+        return renderNotesPage(response, {
+            title: "Active Notes",
+            success: request.flash?.("success")?.[0] ?? false,
+            error: request.flash?.("error")?.[0] ?? false,
+            notes: result.notes,
+            pagination: result.pagination,
+            filters: request.query,
+        });
+    });
+
     getAllNotes = autoCatchFn(async (request, response) => {
         const { page, limit, subject, topic, subTopic, isPremium } = request.query;
 
@@ -53,6 +76,25 @@ class NotesController {
             error: request.flash?.("error")?.[0] ?? false,
             notes: result.notes,
             pagination: result.pagination,
+            filters: request.query,
+        });
+    });
+
+    getAllDeletedNotes = autoCatchFn(async (request, response) => {
+        const { page, limit, subject, topic, subTopic, isPremium } = request.query;
+
+        const result = await notesService.getAllDeletedNotes(
+            { subject, topic, subTopic, isPremium },
+            { page, limit }
+        );
+
+        return renderNotesPage(response, {
+            title: "Deleted Notes",
+            success: request.flash?.("success")?.[0] ?? false,
+            error: request.flash?.("error")?.[0] ?? false,
+            notes: result.notes,
+            pagination: result.pagination,
+            filters: request.query,
         });
     });
 
@@ -68,11 +110,15 @@ class NotesController {
         try {
             const userId = getUserId(request);
 
-            const result = await notesService.createNote(request.body, userId);
+            const result = await notesService.createNote(
+                request.body,
+                userId,
+                getAdminAuditMeta(request)
+            );
 
             request.flash?.("success", result.message);
 
-            return response.redirect("/notes");
+            return response.redirect("/admin/notes");
         } catch (error) {
             return renderNotesPage(response, {
                 statusCode: error.statusCode ?? 400,
@@ -120,12 +166,16 @@ class NotesController {
             const result = await notesService.editNote(
                 noteId,
                 request.body,
-                userId
+                userId,
+                {
+                    requireOwnership: false,
+                },
+                getAdminAuditMeta(request)
             );
 
             request.flash?.("success", result.message);
 
-            return response.redirect("/notes");
+            return response.redirect("/admin/notes");
         } catch (error) {
             return renderNotesPage(response, {
                 statusCode: error.statusCode ?? 400,
@@ -142,19 +192,27 @@ class NotesController {
             const { noteId } = request.params;
             const userId = getUserId(request);
 
-            const result = await notesService.deleteNote(noteId, userId);
+            const result = await notesService.deleteNote(
+                noteId,
+                userId,
+                {
+                    requireOwnership: false,
+                },
+                getAdminAuditMeta(request)
+            );
 
             request.flash?.("success", result.message);
 
-            return response.redirect("/notes");
+            return response.redirect("/admin/notes");
         } catch (error) {
             request.flash?.("error", error?.message ?? "Note delete failed");
 
-            return response.redirect("/notes");
+            return response.redirect("/admin/notes");
         }
     });
 }
 
 const notesController = new NotesController();
 
-export { notesController };
+export { notesController, NotesController };
+export default notesController;

@@ -28,9 +28,17 @@ export const googleLoginRateLimit = redisRateLimit({
   message: 'Too many Google login attempts, please try again later',
 });
 
+export const adminActionRateLimit = redisRateLimit({
+    keyPrefix: "rate_limit:admin:action",
+    windowInSeconds: 60,
+    maxRequests: 50,
+    message: "Too many admin actions, please try again later",
+    useUserId: true,
+});
 export default {
   loginRateLimit,
   registerRateLimit,
   refreshTokenRateLimit,
   googleLoginRateLimit,
+  adminActionRateLimit
 };

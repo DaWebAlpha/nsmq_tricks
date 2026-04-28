@@ -19,9 +19,7 @@ function renderPage(view, title) {
 }
 
 class PageController {
-    getLoginPage = renderPage("pages/auth/login", "Login");
-
-    getRegisterPage = renderPage("pages/auth/register", "Register");
+    
 
     getHomePage = autoCatchFn(async (request, response) => {
         const refreshToken = request.cookies?.[REFRESH_TOKEN_COOKIE_NAME];

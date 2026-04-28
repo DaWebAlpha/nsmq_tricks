@@ -7,6 +7,8 @@ import { securityRepository } from "../repositories/security.repository.js";
 import { ACCOUNT_STATUSES } from "../models/auth/userSecurity.model.js";
 import { ACCESS_TOKEN_COOKIE_NAME } from "../utils/auth.cookies.js";
 
+const ADMIN_ROLES = ["moderator", "admin", "superadmin"];
+
 const getAccessTokenFromRequest = (request) => {
     const authHeader = request.headers?.authorization;
 
@@ -35,8 +37,33 @@ const isPageRequest = (request) => {
     return request.accepts("html") && !isApiRequest(request);
 };
 
+const isAdminPath = (request) => {
+    return request.originalUrl?.startsWith("/admin");
+};
+
+const getSafeRefreshFallback = (request) => {
+    if (isAdminPath(request)) {
+        return "/admin/home";
+    }
+
+    return "/dashboard";
+};
+
+const getSafeRedirectPath = (request) => {
+    /**
+     * Never redirect back to POST action URLs after refresh.
+     * Browser refresh redirect is GET, so action URLs like /delete
+     * will become GET /delete and cause 404.
+     */
+    if (request.method !== "GET") {
+        return getSafeRefreshFallback(request);
+    }
+
+    return request.originalUrl || getSafeRefreshFallback(request);
+};
+
 const redirectToRefresh = (request, response) => {
-    const redirectTo = encodeURIComponent(request.originalUrl || "/dashboard");
+    const redirectTo = encodeURIComponent(getSafeRedirectPath(request));
 
     return response.redirect(
         `/auth/page/refresh-token?redirectTo=${redirectTo}`

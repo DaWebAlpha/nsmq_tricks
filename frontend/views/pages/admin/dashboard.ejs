@@ -1,0 +1,105 @@
+<%- include("../../partials/header", {title: "Dashboard"}) %>
+<%- include("../../partials/navigation_nav", {
+    nav1: "/admin/dashboard",
+    title1: "Dashboard",
+    nav2: "/admin/home",
+    title2: "Go back home"
+}) %>
+
+<main role="main" class="admin__main">
+    <section class="admin__hero">
+        <div class="container">
+            <div class="admin__hero-card">
+                <p class="admin__eyebrow">Analytics Overview</p>
+
+                <h1 class="admin__title">Platform Dashboard</h1>
+
+                <p class="admin__text">
+                    Track users, notes, subscriptions, security activity, and system performance.
+                </p>
+
+                <div class="admin__actions">
+                    <a href="/admin/users" class="main__button button__text btn">Manage Users</a>
+                    <a href="/admin/notes" class="main__button button__text btn">Manage Notes</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section admin__dashboard-section">
+        <div class="container">
+            <div class="admin__stats-grid">
+                <article class="admin__stat-card">
+                    <span class="admin__stat-icon">👥</span>
+                    <p>Total Users</p>
+                    <h2><%= totalUsers ?? 0 %></h2>
+                    <span>Registered accounts</span>
+                </article>
+
+                <article class="admin__stat-card">
+                    <span class="admin__stat-icon">✅</span>
+                    <p>Total Active Users</p>
+                    <h2><%= totalActiveUsers ?? 0 %></h2>
+                    <span>Not deleted accounts</span>
+                </article>
+
+                <article class="admin__stat-card">
+                    <span class="admin__stat-icon">🗑️</span>
+                    <p>Total Deleted Accounts</p>
+                    <h2><%= totalDeletedUsers ?? 0 %></h2>
+                    <span>Soft deleted accounts</span>
+                </article>
+            </div>
+
+            <div class="admin__analytics-grid">
+                <article class="admin__panel">
+                    <header class="admin__panel-header">
+                        <div>
+                            <p class="admin__eyebrow">User Analytics</p>
+                            <h2>Account Overview</h2>
+                        </div>
+
+                        <a href="/admin/users">View Users</a>
+                    </header>
+
+                    <div class="admin__metric-list">
+                        <div class="admin__metric-item">
+                            <span>Registered Users</span>
+                            <strong><%= totalUsers ?? 0 %></strong>
+                        </div>
+
+                        <div class="admin__metric-item">
+                            <span>Active Users</span>
+                            <strong><%= totalActiveUsers ?? 0 %></strong>
+                        </div>
+
+                        <div class="admin__metric-item">
+                            <span>Deleted Users</span>
+                            <strong><%= totalDeletedUsers ?? 0 %></strong>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="admin__panel">
+                    <header class="admin__panel-header">
+                        <div>
+                            <p class="admin__eyebrow">Quick Actions</p>
+                            <h2>Admin Shortcuts</h2>
+                        </div>
+                    </header>
+
+                    <div class="admin__shortcut-list">
+                        <a href="/admin/users">Manage Users</a>
+                        <a href="/admin/notes">Manage Notes</a>
+                        <a href="/admin/security">Security</a>
+                        <a href="/admin/failed-login-logs">Failed Login Logs</a>
+                        <a href="/admin/login-logs">Login Logs</a>
+                        <a href="/admin/profile">Admin Profile</a>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+</main>
+
+<%- include("../../partials/admin_footer") %>

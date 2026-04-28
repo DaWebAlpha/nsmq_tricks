@@ -1,9 +1,14 @@
-<div>
-    <div>
-        <div>
-            <h1><%= title %></h1>
-            <p><%= message %></p>
-            <a href="/">Go Back Home</a>
-        </div>
+<%- include("partials/header", {title: "error"}) %>
+<%- include("partials/sub_nav") %>
+
+
+<div class="section__error-header">
+    <div class="section__error">
+        <h1><%= title %></h1>
+        <p><%= message %></p>
+        <a href="/" class="main__button button__text btn">Go Back Home</a>
     </div>
 </div>
+
+
+<%- include("partials/footer") %>

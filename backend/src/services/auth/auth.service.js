@@ -19,7 +19,10 @@ import { userRepository } from "../../repositories/user.repository.js";
 import { securityRepository } from "../../repositories/security.repository.js";
 import withTransaction from "../../utils/db.transaction.js";
 import {
-    FailedLoginLogs,
+    LoginLog
+} from "../../models/auth/loginLogs.model.js";
+import {
+    FailedLoginLog,
     FAILED_LOGIN_REASONS,
 } from "../../models/auth/failedLoginLogs.model.js";
 import { ACCOUNT_STATUSES } from "../../models/auth/userSecurity.model.js";
@@ -147,11 +150,13 @@ class AuthService {
         }
 
         if (!user) {
-            await FailedLoginLogs.create({
+            await FailedLoginLog.create({
                 userId: null,
                 ipAddress,
                 userAgent,
                 deviceName,
+                deviceId,
+                attemptedAt: new Date(),
                 reason: FAILED_LOGIN_REASONS.UNKNOWN_IDENTIFIER,
             });
 
@@ -185,11 +190,13 @@ class AuthService {
         }
 
         if (security.isSuspended) {
-            await FailedLoginLogs.create({
+            await FailedLoginLog.create({
                 userId,
                 ipAddress,
                 userAgent,
                 deviceName,
+                deviceId,
+                attemptedAt: new Date(),
                 reason: FAILED_LOGIN_REASONS.BANNED_ACCOUNT,
             });
 
@@ -204,11 +211,13 @@ class AuthService {
         }
 
         if (security.isBanned) {
-            await FailedLoginLogs.create({
+            await FailedLoginLog.create({
                 userId,
                 ipAddress,
                 userAgent,
                 deviceName,
+                deviceId,
+                attemptedAt: new Date(),
                 reason: FAILED_LOGIN_REASONS.BANNED_ACCOUNT,
             });
 
@@ -223,11 +232,13 @@ class AuthService {
         }
 
         if (security.isLocked) {
-            await FailedLoginLogs.create({
+            await FailedLoginLog.create({
                 userId,
                 ipAddress,
                 userAgent,
                 deviceName,
+                deviceId,
+                attemptedAt: new Date(),
                 reason: FAILED_LOGIN_REASONS.LOCKED_ACCOUNT,
             });
 
@@ -241,18 +252,20 @@ class AuthService {
             });
         }
 
-        console.log("LOGIN USER:", user);
+        /* console.log("LOGIN USER:", user);
         console.log("HAS PASSWORD:", Boolean(user?.password));
         console.log("HAS comparePassword:", typeof user?.comparePassword);
-        console.log("PLAIN PASSWORD:", password);
+        console.log("PLAIN PASSWORD:", password); */
         const isValidPassword = await user.comparePassword(password);
 
         if (!isValidPassword) {
-            await FailedLoginLogs.create({
+            await FailedLoginLog.create({
                 userId,
                 ipAddress,
                 userAgent,
                 deviceName,
+                deviceId,
+                attemptedAt: new Date(),
                 reason: FAILED_LOGIN_REASONS.INVALID_PASSWORD,
             });
 
@@ -286,6 +299,15 @@ class AuthService {
                 userId,
                 deviceId,
                 message: "User logged in",
+            });
+
+            await LoginLog.create({
+                userId: resolveId(user),
+                deviceName,
+                deviceId,
+                userAgent,
+                ipAddress,
+                loginAt: new Date(),
             });
 
             return {
@@ -435,7 +457,7 @@ class AuthService {
         });
     }
 
-    async logout(payload = {}) {
+    async logout(payload = {}, request) {
         const rawRefreshToken = String(payload?.refreshToken ?? "").trim();
 
         if (!rawRefreshToken) {
@@ -492,13 +514,13 @@ class AuthService {
                     { session }
                 );
             } catch (error) {
-                throw new NotFoundError({ message: "user not found" });
+                throw new NotFoundError({ message: "User not found" });
             }
 
             const resolvedUserId = resolveId(user);
 
             if (!resolvedUserId) {
-                throw new NotFoundError({ message: "user not found" });
+                throw new NotFoundError({ message: "User not found" });
             }
 
             let security = null;
@@ -517,7 +539,7 @@ class AuthService {
             return {
                 user,
                 security,
-                message: "current user fetched successfully",
+                message: "Current user fetched successfully",
             };
         });
     }
@@ -526,7 +548,4 @@ class AuthService {
 const authService = new AuthService();
 
 export { authService, AuthService };
-export default {
-    authService,
-    AuthService,
-};
+export default authService;
