@@ -29,7 +29,7 @@
                     </div>
                 </header>
 
-                <% if (typeof failedLogs !== "undefined" && failedLogs?.length) { %>
+                <% if (failedLoginLogs?.length) { %>
                     <div class="table-wrapper">
                         <table class="table">
                             <thead class="table__header">
@@ -38,24 +38,82 @@
                                     <th class="table__cell">Reason</th>
                                     <th class="table__cell">IP Address</th>
                                     <th class="table__cell">Device</th>
-                                    <th class="table__cell">Date</th>
+                                    <th class="table__cell">User Agent</th>
+                                    <th class="table__cell">Attempted At</th>
                                 </tr>
                             </thead>
+
                             <tbody class="table__body">
-                                <% failedLogs.forEach((log) => { %>
+                                <% failedLoginLogs.forEach((log) => { %>
                                     <tr class="table__row">
                                         <td class="table__cell"><%= log?.identifier ?? "N/A" %></td>
-                                        <td class="table__cell"><span class="badge error__badge"><%= log?.reason ?? "unknown" %></span></td>
+                                        <td class="table__cell">
+                                            <span class="badge error__badge">
+                                                <%= log?.reason ?? "unknown" %>
+                                            </span>
+                                        </td>
                                         <td class="table__cell"><%= log?.ipAddress ?? "N/A" %></td>
-                                        <td class="table__cell"><%= log?.deviceName ?? "N/A" %></td>
-                                        <td class="table__cell"><%= log?.createdAt ? new Date(log.createdAt).toLocaleString() : "N/A" %></td>
+                                        <td class="table__cell"><%= log?.deviceName ?? log?.deviceId ?? "N/A" %></td>
+                                        <td class="table__cell"><%= log?.userAgent ?? "N/A" %></td>
+                                        <td class="table__cell">
+                                            <%= log?.attemptedAt
+                                                ? new Date(log.attemptedAt).toLocaleString()
+                                                : log?.createdAt
+                                                    ? new Date(log.createdAt).toLocaleString()
+                                                    : "N/A"
+                                            %>
+                                        </td>
                                     </tr>
                                 <% }) %>
                             </tbody>
                         </table>
                     </div>
+
+                    <% if (pagination && pagination.totalPages > 1) { %>
+                        <nav class="pagination" aria-label="Failed login logs pagination">
+                            <ul class="pagination__list">
+
+                                <% if (pagination.page > 1) { %>
+                                    <li class="pagination__item">
+                                        <a 
+                                            class="pagination__link"
+                                            href="/admin/failed-login-logs?page=<%= pagination.page - 1 %>&limit=<%= pagination.limit %>"
+                                        >
+                                            Prev
+                                        </a>
+                                    </li>
+                                <% } %>
+
+                                <% for (let pageNumber = 1; pageNumber <= pagination.totalPages; pageNumber++) { %>
+                                    <li class="pagination__item">
+                                        <a 
+                                            class="pagination__link <%= Number(pagination.page) === pageNumber ? 'active' : '' %>"
+                                            href="/admin/failed-login-logs?page=<%= pageNumber %>&limit=<%= pagination.limit %>"
+                                        >
+                                            <%= pageNumber %>
+                                        </a>
+                                    </li>
+                                <% } %>
+
+                                <% if (pagination.page < pagination.totalPages) { %>
+                                    <li class="pagination__item">
+                                        <a 
+                                            class="pagination__link"
+                                            href="/admin/failed-login-logs?page=<%= pagination.page + 1 %>&limit=<%= pagination.limit %>"
+                                        >
+                                            Next
+                                        </a>
+                                    </li>
+                                <% } %>
+
+                            </ul>
+                        </nav>
+                    <% } %>
+
                 <% } else { %>
-                    <div class="alert info__alert">No failed login logs available yet.</div>
+                    <div class="alert info__alert">
+                        No failed login logs available yet.
+                    </div>
                 <% } %>
             </article>
         </div>

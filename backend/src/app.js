@@ -18,7 +18,7 @@ import { handleError } from "./middlewares/handleError.js";
 // Routes
 import { authPageRouter } from "./routes/auth/auth.page.route.js";
 import { pageRouter } from "./routes/pages/pages.routes.js";
-import { csrfMiddleware } from "./middlewares/csrf.middleware.js";
+/* import { csrfMiddleware } from "./middlewares/csrf.middleware.js"; */
 import { subscriptionRouter } from "./routes/subscription/subscription.routes.js"
 import { adminRouter } from "./routes/admin/admin.routes.js";
 import { viewLocalsMiddleware } from "./middlewares/view.locals.middleware.js";
@@ -151,7 +151,7 @@ app.use(
 app.use(cookieParser());
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-app.use(csrfMiddleware);
+/* app.use(csrfMiddleware); */
 app.use(viewLocalsMiddleware);
 
 /**

@@ -14,6 +14,15 @@ const csrfMiddleware = (request, response, next) => {
 
         const submittedToken = csrfFromHeader || csrfFromBody;
 
+        // TEMPORARY DEBUG — remove after fix is confirmed
+        console.log("[CSRF DEBUG]", {
+            csrfFromBody,
+            csrfFromCookie,
+            csrfFromHeader,
+            submittedToken,
+            match: submittedToken === csrfFromCookie,
+        });
+
         if (!submittedToken || !csrfFromCookie) {
             throw new UnauthorizedError({
                 message: "CSRF token missing",

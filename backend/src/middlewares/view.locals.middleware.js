@@ -5,12 +5,16 @@ const viewLocalsMiddleware = (request, response, next) => {
     const originalRender = response.render.bind(response);
 
     response.render = (view, locals = {}, callback) => {
-        let csrfToken = request.cookies?.csrfToken;
+        const existingToken = request.cookies?.csrfToken;
 
-        // ✅ Only generate if missing
-        if (!csrfToken) {
+        // Only generate + set a new cookie if there isn't one already
+        let csrfToken;
+        if (existingToken) {
+            csrfToken = existingToken;
+            // Do NOT call setCSRFTokenCookie — leave the existing cookie alone
+        } else {
             csrfToken = generateCSRFToken();
-            setCSRFTokenCookie(response, csrfToken);
+            setCSRFTokenCookie(response, csrfToken); // only set when fresh
         }
 
         return originalRender(
@@ -30,6 +34,5 @@ const viewLocalsMiddleware = (request, response, next) => {
 
     next();
 };
-
 export { viewLocalsMiddleware };
 export default viewLocalsMiddleware;

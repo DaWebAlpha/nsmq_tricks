@@ -139,7 +139,6 @@ const clearAuthCookies = (response) => {
 
     clearAccessTokenCookie(response);
     clearRefreshTokenCookie(response);
-    clearCSRFTokenCookie(response);
 };
 
 export {

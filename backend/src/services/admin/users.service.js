@@ -668,6 +668,7 @@ class UsersService {
         };
     }
 
+    
     async getTotalActiveUsers(filter = {}, options = {}) {
         const activeUsersFilter = buildActiveUsersFilter(filter);
         const result = await userRepository.count(activeUsersFilter, options);

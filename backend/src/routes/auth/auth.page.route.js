@@ -11,6 +11,7 @@ import {
     refreshTokenRateLimit,
 } from "../../middlewares/authRateLimit.middleware.js";
 import { alreadyAuthenticated } from "../../middlewares/alreadyAuthenticated.middleware.js";
+import { csrfMiddleware } from "../../middlewares/csrf.middleware.js";
 
 const authPageRouter = express.Router();
 
@@ -30,6 +31,7 @@ authPageRouter.post(
     "/register",
     alreadyAuthenticated,
     registerRateLimit,
+    csrfMiddleware,
     authPageController.register
 );
 
@@ -37,6 +39,7 @@ authPageRouter.post(
     "/login",
     alreadyAuthenticated,
     loginRateLimit,
+    csrfMiddleware,
     authPageController.login
 );
 
@@ -49,11 +52,13 @@ authPageRouter.get(
 authPageRouter.post(
     "/refresh-token",
     refreshTokenRateLimit,
+    csrfMiddleware,
     authPageController.refreshToken
 );
 
 authPageRouter.post(
     "/logout",
+    csrfMiddleware,
     authPageController.logout
 );
 

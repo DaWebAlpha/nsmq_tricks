@@ -152,6 +152,7 @@ class AuthService {
         if (!user) {
             await FailedLoginLog.create({
                 userId: null,
+                identifier,
                 ipAddress,
                 userAgent,
                 deviceName,
@@ -192,6 +193,7 @@ class AuthService {
         if (security.isSuspended) {
             await FailedLoginLog.create({
                 userId,
+                identifier,
                 ipAddress,
                 userAgent,
                 deviceName,
@@ -213,6 +215,7 @@ class AuthService {
         if (security.isBanned) {
             await FailedLoginLog.create({
                 userId,
+                identifier,
                 ipAddress,
                 userAgent,
                 deviceName,
@@ -234,6 +237,7 @@ class AuthService {
         if (security.isLocked) {
             await FailedLoginLog.create({
                 userId,
+                identifier,
                 ipAddress,
                 userAgent,
                 deviceName,
@@ -261,6 +265,7 @@ class AuthService {
         if (!isValidPassword) {
             await FailedLoginLog.create({
                 userId,
+                identifier,
                 ipAddress,
                 userAgent,
                 deviceName,

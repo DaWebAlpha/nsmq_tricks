@@ -29,7 +29,13 @@ const failedLoginLogDefinition = {
         ref: "User",
         default: null,
     },
+    identifier:{
+        type: String,
+        required: [true, "Identifier is required"],
+        trim: true,
+        index: true,
 
+    },
     ipAddress: {
         type: String,
         required: [true, "IP address is required"],
