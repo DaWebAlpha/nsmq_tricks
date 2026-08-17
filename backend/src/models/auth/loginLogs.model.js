@@ -1,84 +1,154 @@
 import mongoose from "mongoose";
-import { createBaseModel } from "../mongoose.model.base.js";
+import { createSchema } from "../base/mongoose.schema.js";
+import {
+    BadRequestError
+} from "../../errors/index.js";
 
-const loginLogDefinition = {
+const { ObjectId } = mongoose.Schema.Types;
+
+const loginLogSchemaDefinition = {
     userId: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: ObjectId,
         ref: "User",
-        default: null,
+        required: [true, "User is required"],
         index: true,
     },
 
-    ipAddress: {
+    identifier: {
         type: String,
-        required: [true, "IP address is required"],
+        required: [true, "Identifier is required"],
         trim: true,
-        maxlength: [100, "IP address is too long"],
-    },
-
-    userAgent: {
-        type: String,
-        default: null,
-        trim: true,
-        maxlength: [500, "User agent is too long"],
+        index: true,
     },
 
     deviceName: {
         type: String,
-        default: null,
         trim: true,
-        maxlength: [255, "Device name is too long"],
+        default: null,
+        maxlength: [250, "Device name is too long"],
     },
 
     deviceId: {
         type: String,
-        default: null,
         trim: true,
-        maxlength: [255, "Device ID is too long"],
-        index: true, 
+        required: [true, "Device id is required"],
+        minlength: [1, "Device id is too short"],
+        maxlength: [250, "Device id is too long"],
     },
 
+    userAgent: {
+        type: String,
+        trim: true,
+        default: null,
+        maxlength: [1000, "User agent is too long"],
+    },
+    ipAddress: {
+        type: String,
+        trim: true,
+        default: null,
+        maxlength: [250, "IpAddress is too long"],
+    },
     loginAt: {
         type: Date,
         required: [true, "Login date is required"],
         default: Date.now,
-        index: true,
+    }
+}
+
+const loginLogSchema = createSchema(loginLogSchemaDefinition);
+
+loginLogSchema.index({userId: 1, loginAt: -1});
+loginLogSchema.index({deviceId: 1, loginAt: -1});
+loginLogSchema.index({ipAddress: 1, loginAt: -1});
+loginLogSchema.index(
+    { loginAt: 1 },
+    {
+        expireAfterSeconds: 31536000 * 2,
     },
-};
+);
 
-const LoginLog = createBaseModel("LoginLog", loginLogDefinition, (schema) => {
-    schema.index({
-        userId: 1,
-        userAgent: 1,
-        deviceId: 1,
-        deviceName: 1,
-        ipAddress: 1,
-    });
 
-    schema.index({ ipAddress: 1, loginAt: -1 });
-    schema.index({ userId: 1, loginAt: -1 }, { sparse: true });
+loginLogSchema.pre("validate", function () {
+    const nullableFields = [
+        "deviceName",
+        "userAgent",
+        "ipAddress",
+    ];
 
-    schema.pre("validate", function () {
-        if (typeof this.ipAddress === "string") {
-            this.ipAddress = this.ipAddress.trim();
+    for (const field of nullableFields) {
+        if (typeof this[field] === "string") {
+            this[field] = this[field].trim();
+
+            if (!this[field]) {
+                this[field] = null;
+            }
         }
+    }
 
-        if (typeof this.userAgent === "string") {
-            const cleanedUserAgent = this.userAgent.trim();
-            this.userAgent = cleanedUserAgent || null;
-        }
+    if (typeof this.identifier === "string") {
+        this.identifier = this.identifier.trim().toLowerCase();
+    }
 
-        if (typeof this.deviceName === "string") {
-            const cleanedDeviceName = this.deviceName.trim();
-            this.deviceName = cleanedDeviceName || null;
-        }
-
-        if (typeof this.deviceId === "string") {
-            const cleanedDeviceId = this.deviceId.trim();
-            this.deviceId = cleanedDeviceId || null;
-        }
-    });
+    if (typeof this.deviceId === "string") {
+        this.deviceId = this.deviceId.trim().toLowerCase();
+    }
 });
 
+
+loginLogSchema.statics.logLogin = function ({
+    userId,
+    identifier,
+    deviceName = null,
+    deviceId,
+    userAgent = null,
+    ipAddress = null,
+    session = null,
+} = {}) {
+    if (!userId) {
+        throw new BadRequestError({
+            message: "User id is required",
+            code: "USERID_REQUIRED",
+        });
+    }
+
+    const normalizedIdentifier =
+        typeof identifier === "string"
+            ? identifier.trim().toLowerCase()
+            : "";
+
+    if (!normalizedIdentifier) {
+        throw new BadRequestError({
+            message: "Identifier is required",
+            code: "IDENTIFIER_REQUIRED",
+        });
+    }
+
+    const normalizedDeviceId =
+        typeof deviceId === "string"
+            ? deviceId.trim().toLowerCase()
+            : "";
+
+    if (!normalizedDeviceId) {
+        throw new BadRequestError({
+            message: "Device id is required",
+            code: "DEVICEID_REQUIRED",
+        });
+    }
+
+    return this.createDocument({
+        doc: {
+            userId,
+            identifier: normalizedIdentifier,
+            deviceName,
+            deviceId: normalizedDeviceId,
+            userAgent,
+            ipAddress,
+            loginAt: new Date(),
+        },
+        session,
+    });
+};
+
+const LoginLog = mongoose.model("LoginLog", loginLogSchema);
+
 export { LoginLog };
-export default LoginLog;

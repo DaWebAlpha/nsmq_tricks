@@ -13,7 +13,7 @@ const CSRF_TOKEN_COOKIE_NAME = "csrfToken";
 
 const IS_PRODUCTION = node_env === "production";
 
-const ACCESS_TOKEN_MAX_AGE_MS = 15 * 60 * 1000;
+const ACCESS_TOKEN_MAX_AGE_MS = 60 * 60 * 1000;
 const REFRESH_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const assertResponse = (response) => {

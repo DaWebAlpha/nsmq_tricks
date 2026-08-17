@@ -1,10 +1,25 @@
 <%- include("../../partials/header", {title: title ?? "Notes"}) %>
+
 <%- include("../../partials/navigation_nav", {
     nav1: "/admin/notes",
     title1: "Notes",
     nav2: "/admin/home",
     title2: "Go back home"
 }) %>
+
+<%
+    const queryWithoutPage = new URLSearchParams();
+
+    if (filters?.subject) queryWithoutPage.set("subject", filters.subject);
+    if (filters?.topic) queryWithoutPage.set("topic", filters.topic);
+    if (filters?.topicNumber) queryWithoutPage.set("topicNumber", filters.topicNumber);
+    if (filters?.subTopic) queryWithoutPage.set("subTopic", filters.subTopic);
+    if (filters?.subTopicNumber) queryWithoutPage.set("subTopicNumber", filters.subTopicNumber);
+    if (filters?.isPremium) queryWithoutPage.set("isPremium", filters.isPremium);
+
+    const baseQuery = queryWithoutPage.toString();
+    const pagePath = currentPath ?? "/admin/notes";
+%>
 
 <main role="main" class="admin__main">
     <section class="admin__hero">
@@ -13,7 +28,7 @@
                 <p class="admin__eyebrow">Notes Management</p>
                 <h1 class="admin__title"><%= title ?? "Manage Notes" %></h1>
                 <p class="admin__text">
-                    Create, edit, delete, and manage learning notes for students.
+                    Create, edit, arrange by topic order, arrange subtopics inside each topic, soft delete, restore, permanently delete, and preview notes exactly as students will see them.
                 </p>
 
                 <div class="admin__actions">
@@ -45,25 +60,61 @@
                         </div>
                     </header>
 
-                    <form action="/admin/notes" method="POST" class="form">
+                    <form action="/admin/notes" method="POST" class="form note-editor-form">
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
-                        <div class="grid__3">
-                            <input class="input" type="text" name="subject" placeholder="Subject" value="<%= oldInput?.subject ?? '' %>" required>
+                        <div class="grid__4">
+                            <select class="select" name="subject" required>
+                                <option value="">Select Subject</option>
+                                <% subjects.forEach((subject) => { %>
+                                    <option value="<%= subject %>" <%= oldInput?.subject === subject ? "selected" : "" %>>
+                                        <%= subject.charAt(0).toUpperCase() + subject.slice(1) %>
+                                    </option>
+                                <% }) %>
+                            </select>
+
+                            <input class="input" type="number" min="0" step="1" name="topicNumber" placeholder="Topic Number" value="<%= oldInput?.topicNumber ?? 0 %>" required>
+
                             <input class="input" type="text" name="topic" placeholder="Topic" value="<%= oldInput?.topic ?? '' %>" required>
-                            <input class="input" type="text" name="subTopic" placeholder="Sub Topic" value="<%= oldInput?.subTopic ?? '' %>" required>
+
+                            <input class="input" type="number" min="0" step="1" name="subTopicNumber" placeholder="Sub Topic Number" value="<%= oldInput?.subTopicNumber ?? 0 %>" required>
                         </div>
 
                         <br>
 
-                        <textarea class="textarea" name="content" placeholder="Content" required><%= oldInput?.content ?? '' %></textarea>
+                        <div class="grid__4">
+                            <input class="input" type="text" name="subTopic" placeholder="Sub Topic" value="<%= oldInput?.subTopic ?? '' %>" required>
+
+                            <select class="select" name="isPremium" required>
+                                <option value="true" <%= String(oldInput?.isPremium ?? "true") === "true" ? "selected" : "" %>>Premium</option>
+                                <option value="false" <%= String(oldInput?.isPremium) === "false" ? "selected" : "" %>>Free</option>
+                            </select>
+                        </div>
+
+                        <br>
+
+                        <textarea
+                            id="noteContentInput"
+                            class="textarea rich-note-editor"
+                            name="content"
+                            placeholder="Type your note here. You can use headings, bold text, tables, lists, HTML, and MathJax like \( x^2 + y^2 = z^2 \)"
+                            required
+                        ><%= oldInput?.content ?? '' %></textarea>
 
                         <br><br>
 
-                        <label class="checkbox">
-                            <input type="checkbox" name="isPremium" <%= oldInput?.isPremium ? "checked" : "" %>>
-                            Premium Note
-                        </label>
+                        <div class="note-viewer">
+                            <header class="note-viewer__header">
+                                <div>
+                                    <p class="note-viewer__eyebrow">Live Student Preview</p>
+                                    <h3>Preview while typing</h3>
+                                </div>
+                            </header>
+
+                            <div id="noteLivePreview" class="note-viewer__content math-content">
+                                <%- oldInput?.content || "<p>Your preview will appear here...</p>" %>
+                            </div>
+                        </div>
 
                         <br><br>
 
@@ -79,25 +130,61 @@
                         </div>
                     </header>
 
-                    <form action="/admin/notes/<%= noteId %>/update" method="POST" class="form">
+                    <form action="/admin/notes/<%= noteId %>/update" method="POST" class="form note-editor-form">
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
-                        <div class="grid__3">
-                            <input class="input" type="text" name="subject" value="<%= oldInput?.subject ?? '' %>" required>
+                        <div class="grid__4">
+                            <select class="select" name="subject" required>
+                                <option value="">Select Subject</option>
+                                <% subjects.forEach((subject) => { %>
+                                    <option value="<%= subject %>" <%= oldInput?.subject === subject ? "selected" : "" %>>
+                                        <%= subject.charAt(0).toUpperCase() + subject.slice(1) %>
+                                    </option>
+                                <% }) %>
+                            </select>
+
+                            <input class="input" type="number" min="0" step="1" name="topicNumber" value="<%= oldInput?.topicNumber ?? 0 %>" required>
+
                             <input class="input" type="text" name="topic" value="<%= oldInput?.topic ?? '' %>" required>
-                            <input class="input" type="text" name="subTopic" value="<%= oldInput?.subTopic ?? '' %>" required>
+
+                            <input class="input" type="number" min="0" step="1" name="subTopicNumber" value="<%= oldInput?.subTopicNumber ?? 0 %>" required>
                         </div>
 
                         <br>
 
-                        <textarea class="textarea" name="content" required><%= oldInput?.content ?? '' %></textarea>
+                        <div class="grid__4">
+                            <input class="input" type="text" name="subTopic" value="<%= oldInput?.subTopic ?? '' %>" required>
+
+                            <select class="select" name="isPremium" required>
+                                <option value="true" <%= String(oldInput?.isPremium) === "true" ? "selected" : "" %>>Premium</option>
+                                <option value="false" <%= String(oldInput?.isPremium) === "false" ? "selected" : "" %>>Free</option>
+                            </select>
+                        </div>
+
+                        <br>
+
+                        <textarea
+                            id="noteContentInput"
+                            class="textarea rich-note-editor"
+                            name="content"
+                            placeholder="Type your note here. You can use headings, bold text, tables, lists, HTML, and MathJax like \( x^2 + y^2 = z^2 \)"
+                            required
+                        ><%= oldInput?.content ?? '' %></textarea>
 
                         <br><br>
 
-                        <label class="checkbox">
-                            <input type="checkbox" name="isPremium" <%= oldInput?.isPremium ? "checked" : "" %>>
-                            Premium Note
-                        </label>
+                        <div class="note-viewer">
+                            <header class="note-viewer__header">
+                                <div>
+                                    <p class="note-viewer__eyebrow">Live Student Preview</p>
+                                    <h3>Preview while typing</h3>
+                                </div>
+                            </header>
+
+                            <div id="noteLivePreview" class="note-viewer__content math-content">
+                                <%- oldInput?.content || "<p>Your preview will appear here...</p>" %>
+                            </div>
+                        </div>
 
                         <br><br>
 
@@ -112,7 +199,11 @@
                             <h2><%= note?.subTopic ?? "Note Details" %></h2>
                         </div>
 
-                        <a href="/admin/notes/<%= noteId %>/edit">Edit Note</a>
+                        <% if (!note?.isDeleted) { %>
+                            <a href="/admin/notes/<%= noteId %>/edit" class="btn button__sm warning__button">
+                                Edit Note
+                            </a>
+                        <% } %>
                     </header>
 
                     <div class="admin__metric-list">
@@ -122,21 +213,52 @@
                         </div>
 
                         <div class="admin__metric-item">
+                            <span>Topic Number</span>
+                            <strong><%= note?.topicNumber ?? 0 %></strong>
+                        </div>
+
+                        <div class="admin__metric-item">
                             <span>Topic</span>
                             <strong><%= note?.topic ?? "N/A" %></strong>
+                        </div>
+
+                        <div class="admin__metric-item">
+                            <span>Sub Topic Number</span>
+                            <strong><%= note?.subTopicNumber ?? 0 %></strong>
+                        </div>
+
+                        <div class="admin__metric-item">
+                            <span>Sub Topic</span>
+                            <strong><%= note?.subTopic ?? "N/A" %></strong>
                         </div>
 
                         <div class="admin__metric-item">
                             <span>Premium</span>
                             <strong><%= note?.isPremium ? "Yes" : "No" %></strong>
                         </div>
+
+                        <div class="admin__metric-item">
+                            <span>Status</span>
+                            <strong><%= note?.isDeleted ? "Deleted" : "Active" %></strong>
+                        </div>
                     </div>
 
                     <br>
 
-                    <div class="card">
-                        <div class="card__body">
-                            <p><%= note?.content ?? "No content available." %></p>
+                    <div class="note-viewer">
+                        <header class="note-viewer__header">
+                            <div>
+                                <p class="note-viewer__eyebrow">Student Preview</p>
+                                <h3>
+                                    Topic <%= note?.topicNumber ?? 0 %>: <%= note?.topic ?? "Topic" %>
+                                    —
+                                    <%= note?.subTopicNumber ?? 0 %>. <%= note?.subTopic ?? "Sub Topic" %>
+                                </h3>
+                            </div>
+                        </header>
+
+                        <div class="note-viewer__content math-content">
+                            <%- note?.content ?? "<p>No content available.</p>" %>
                         </div>
                     </div>
                 </article>
@@ -149,10 +271,27 @@
                         </div>
                     </header>
 
-                    <form action="/admin/notes" method="GET" class="form">
+                    <form action="<%= pagePath %>" method="GET" class="form">
                         <div class="grid__4">
-                            <input class="input" type="text" name="subject" placeholder="Subject" value="<%= filters?.subject ?? '' %>">
+                            <select class="select" name="subject">
+                                <option value="">All Subjects</option>
+                                <% subjects.forEach((subject) => { %>
+                                    <option value="<%= subject %>" <%= filters?.subject === subject ? "selected" : "" %>>
+                                        <%= subject.charAt(0).toUpperCase() + subject.slice(1) %>
+                                    </option>
+                                <% }) %>
+                            </select>
+
+                            <input class="input" type="number" min="0" step="1" name="topicNumber" placeholder="Topic Number" value="<%= filters?.topicNumber ?? '' %>">
+
                             <input class="input" type="text" name="topic" placeholder="Topic" value="<%= filters?.topic ?? '' %>">
+
+                            <input class="input" type="number" min="0" step="1" name="subTopicNumber" placeholder="Sub Topic Number" value="<%= filters?.subTopicNumber ?? '' %>">
+                        </div>
+
+                        <br>
+
+                        <div class="grid__4">
                             <input class="input" type="text" name="subTopic" placeholder="Sub Topic" value="<%= filters?.subTopic ?? '' %>">
 
                             <select class="select" name="isPremium">
@@ -162,7 +301,10 @@
                             </select>
                         </div>
 
-                        <button type="submit" class="main__button button__text btn">Apply Filters</button>
+                        <div class="button__group">
+                            <button type="submit" class="main__button button__text btn">Apply Filters</button>
+                            <a href="<%= pagePath %>" class="btn info__button">Reset</a>
+                        </div>
                     </form>
                 </article>
 
@@ -182,38 +324,111 @@
                                 <thead class="table__header">
                                     <tr class="table__row">
                                         <th class="table__cell">Subject</th>
+                                        <th class="table__cell">Topic No.</th>
                                         <th class="table__cell">Topic</th>
+                                        <th class="table__cell">Sub Topic No.</th>
                                         <th class="table__cell">Sub Topic</th>
                                         <th class="table__cell">Premium</th>
+                                        <th class="table__cell">Status</th>
                                         <th class="table__cell">Actions</th>
                                     </tr>
                                 </thead>
 
                                 <tbody class="table__body">
                                     <% notes.forEach((item) => { %>
+                                        <% const itemId = item?.id ?? item?._id; %>
+
                                         <tr class="table__row">
                                             <td class="table__cell"><%= item?.subject ?? "N/A" %></td>
+                                            <td class="table__cell"><%= item?.topicNumber ?? 0 %></td>
                                             <td class="table__cell"><%= item?.topic ?? "N/A" %></td>
+                                            <td class="table__cell"><%= item?.subTopicNumber ?? 0 %></td>
                                             <td class="table__cell"><%= item?.subTopic ?? "N/A" %></td>
+
                                             <td class="table__cell">
                                                 <span class="badge <%= item?.isPremium ? 'success__badge' : 'info__badge' %>">
                                                     <%= item?.isPremium ? "Premium" : "Free" %>
                                                 </span>
                                             </td>
-                                            <td class="table__cell table__actions">
-                                                <a href="/admin/notes/<%= item?.id ?? item?._id %>" class="btn button__sm info__button">View</a>
-                                                <a href="/admin/notes/<%= item?.id ?? item?._id %>/edit" class="btn button__sm warning__button">Edit</a>
 
-                                                <form action="/admin/notes/<%= item?.id ?? item?._id %>/delete" method="POST" style="display:inline;">
-                                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                                    <button class="btn button__sm error__button" type="submit">Delete</button>
-                                                </form>
+                                            <td class="table__cell">
+                                                <span class="badge <%= item?.isDeleted ? 'error__badge' : 'success__badge' %>">
+                                                    <%= item?.isDeleted ? "Deleted" : "Active" %>
+                                                </span>
+                                            </td>
+
+                                            <td class="table__cell table__actions">
+                                                <a href="/admin/notes/<%= itemId %>" class="btn button__sm info__button">View</a>
+
+                                                <% if (!item?.isDeleted) { %>
+                                                    <a href="/admin/notes/<%= itemId %>/edit" class="btn button__sm warning__button">Edit</a>
+
+                                                    <form action="/admin/notes/<%= itemId %>/delete" method="POST" style="display:inline;">
+                                                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                                        <button class="btn button__sm error__button" type="submit">Soft Delete</button>
+                                                    </form>
+                                                <% } else { %>
+                                                    <form action="/admin/notes/<%= itemId %>/restore" method="POST" style="display:inline;">
+                                                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                                        <button class="btn button__sm success__button" type="submit">Restore</button>
+                                                    </form>
+
+                                                    <form action="/admin/notes/<%= itemId %>/permanent-delete" method="POST" style="display:inline;">
+                                                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                                        <button
+                                                            class="btn button__sm error__button"
+                                                            type="submit"
+                                                            onclick="return confirm('This will permanently delete this note. This action cannot be undone. Continue?')"
+                                                        >
+                                                            Delete Permanently
+                                                        </button>
+                                                    </form>
+                                                <% } %>
                                             </td>
                                         </tr>
                                     <% }) %>
                                 </tbody>
                             </table>
                         </div>
+
+                        <% if (pagination && pagination.totalPages > 1) { %>
+                            <nav class="pagination" aria-label="Notes pagination">
+                                <ul class="pagination__list">
+                                    <% if (pagination.page > 1) { %>
+                                        <li class="pagination__item">
+                                            <a
+                                                class="pagination__link"
+                                                href="<%= pagePath %>?<%= baseQuery ? baseQuery + '&' : '' %>page=<%= Number(pagination.page) - 1 %>&limit=<%= pagination.limit %>"
+                                            >
+                                                Prev
+                                            </a>
+                                        </li>
+                                    <% } %>
+
+                                    <% for (let pageNumber = 1; pageNumber <= pagination.totalPages; pageNumber++) { %>
+                                        <li class="pagination__item">
+                                            <a
+                                                class="pagination__link <%= Number(pagination.page) === pageNumber ? 'active' : '' %>"
+                                                href="<%= pagePath %>?<%= baseQuery ? baseQuery + '&' : '' %>page=<%= pageNumber %>&limit=<%= pagination.limit %>"
+                                            >
+                                                <%= pageNumber %>
+                                            </a>
+                                        </li>
+                                    <% } %>
+
+                                    <% if (pagination.page < pagination.totalPages) { %>
+                                        <li class="pagination__item">
+                                            <a
+                                                class="pagination__link"
+                                                href="<%= pagePath %>?<%= baseQuery ? baseQuery + '&' : '' %>page=<%= Number(pagination.page) + 1 %>&limit=<%= pagination.limit %>"
+                                            >
+                                                Next
+                                            </a>
+                                        </li>
+                                    <% } %>
+                                </ul>
+                            </nav>
+                        <% } %>
                     <% } else { %>
                         <div class="alert info__alert">No notes found.</div>
                     <% } %>
@@ -222,5 +437,205 @@
         </div>
     </section>
 </main>
+
+<script src="/vendor/tinymce/tinymce.min.js" nonce="<%= cspNonce %>"></script>
+
+<script nonce="<%= cspNonce %>">
+    const noteEditorInput = document.getElementById("noteContentInput");
+    const noteLivePreview = document.getElementById("noteLivePreview");
+
+    const renderMathJaxPreview = () => {
+        if (!noteLivePreview || !window.MathJax || typeof window.MathJax.typesetPromise !== "function") {
+            return;
+        }
+
+        window.MathJax.typesetPromise([noteLivePreview]).catch((error) => {
+            console.error("MathJax preview render failed:", error);
+        });
+    };
+
+    const updateNotePreview = (content) => {
+        if (!noteLivePreview) return;
+
+        noteLivePreview.innerHTML = content || "<p>Your preview will appear here...</p>";
+        renderMathJaxPreview();
+    };
+
+    const syncTinyMCEToTextarea = () => {
+        const editor = window.tinymce?.get("noteContentInput");
+
+        if (!editor || !noteEditorInput) {
+            return "";
+        }
+
+        const content = editor.getContent({ format: "html" }).trim();
+
+        noteEditorInput.value = content;
+        editor.save();
+        updateNotePreview(content);
+
+        return content;
+    };
+
+    if (noteEditorInput && window.tinymce) {
+        tinymce.init({
+            selector: "#noteContentInput",
+            license_key: "gpl",
+            height: 520,
+            menubar: true,
+            branding: false,
+            promotion: false,
+            convert_urls: false,
+            entity_encoding: "raw",
+
+            plugins: "lists advlist autolink link table code preview wordcount searchreplace fullscreen",
+
+            toolbar:
+                "undo redo | blocks | bold italic underline | forecolor backcolor | " +
+                "alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | " +
+                "table link | removeformat | code preview fullscreen",
+
+            block_formats:
+                "Paragraph=p; Heading 1=h1; Heading 2=h2; Heading 3=h3; Heading 4=h4; Heading 5=h5; Heading 6=h6",
+
+            forced_root_block: "p",
+            remove_trailing_brs: false,
+            verify_html: false,
+            cleanup: false,
+
+            valid_elements: "*[*]",
+            extended_valid_elements: "*[*]",
+
+            formats: {
+                bold: {
+                    inline: "strong"
+                },
+
+                italic: {
+                    inline: "em"
+                },
+
+                underline: {
+                    inline: "u"
+                },
+
+                alignleft: {
+                    selector: "p,h1,h2,h3,h4,h5,h6,div,li,td,th",
+                    styles: {
+                        textAlign: "left"
+                    }
+                },
+
+                aligncenter: {
+                    selector: "p,h1,h2,h3,h4,h5,h6,div,li,td,th",
+                    styles: {
+                        textAlign: "center"
+                    }
+                },
+
+                alignright: {
+                    selector: "p,h1,h2,h3,h4,h5,h6,div,li,td,th",
+                    styles: {
+                        textAlign: "right"
+                    }
+                },
+
+                alignjustify: {
+                    selector: "p,h1,h2,h3,h4,h5,h6,div,li,td,th",
+                    styles: {
+                        textAlign: "justify"
+                    }
+                }
+            },
+
+            content_style: `
+                body {
+                    font-family: Arial, sans-serif;
+                    font-size: 16px;
+                    line-height: 1.7;
+                    color: #111827;
+                    padding: 12px;
+                }
+
+                h1, h2, h3, h4, h5, h6 {
+                    line-height: 1.25;
+                    margin: 1rem 0 0.6rem;
+                    font-weight: 800;
+                }
+
+                p {
+                    margin: 0 0 0.85rem;
+                }
+
+                ul, ol {
+                    padding-left: 1.5rem;
+                    margin: 0 0 1rem;
+                }
+
+                table {
+                    border-collapse: collapse;
+                    width: 100%;
+                    margin: 1rem 0;
+                }
+
+                table, th, td {
+                    border: 1px solid #d1d5db;
+                }
+
+                th, td {
+                    padding: 0.65rem;
+                    text-align: left;
+                }
+            `,
+
+            setup(editor) {
+                const syncAndPreview = () => {
+                    const content = editor.getContent({ format: "html" }).trim();
+
+                    noteEditorInput.value = content;
+                    editor.save();
+                    updateNotePreview(content);
+                };
+
+                editor.on("init", syncAndPreview);
+                editor.on("blur keyup change input undo redo setcontent NodeChange ExecCommand", syncAndPreview);
+            },
+
+            init_instance_callback(editor) {
+                editor.on("blur keyup change input undo redo ExecCommand NodeChange", () => {
+                    syncTinyMCEToTextarea();
+                });
+            }
+        });
+    }
+
+    document.querySelectorAll(".note-editor-form").forEach((form) => {
+        form.addEventListener("submit", (event) => {
+            const editor = window.tinymce?.get("noteContentInput");
+
+            if (!editor || !noteEditorInput) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const content = syncTinyMCEToTextarea();
+
+            if (!content) {
+                alert("Content is required. Please enter the note content before submitting.");
+                editor.focus();
+                return;
+            }
+
+            form.requestSubmit
+                ? HTMLFormElement.prototype.submit.call(form)
+                : form.submit();
+        });
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        renderMathJaxPreview();
+    });
+</script>
 
 <%- include("../../partials/admin_footer") %>

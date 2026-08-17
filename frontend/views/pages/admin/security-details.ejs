@@ -1,0 +1,284 @@
+<%- include("../../partials/header", {title: title ?? "Security Details"}) %>
+<%- include("../../partials/navigation_nav", {
+    nav1: "/admin/security",
+    title1: "Security",
+    nav2: "/admin/security",
+    title2: "Back to security"
+}) %>
+
+<%
+    const securityId = security?.id ?? security?._id;
+    const securityUser = security?.userId;
+    const hasUser = securityUser && typeof securityUser === "object";
+
+    const accountStatus = security?.accountStatus ?? "N/A";
+    const statusBadgeClass =
+        accountStatus === "active"
+            ? "success__badge"
+            : accountStatus === "banned"
+                ? "error__badge"
+                : accountStatus === "suspended" || accountStatus === "pending"
+                    ? "warning__badge"
+                    : "info__badge";
+
+    const isLocked = Boolean(security?.lockUntil && new Date(security.lockUntil).getTime() > Date.now());
+%>
+
+<main role="main" class="admin__main">
+    <section class="admin__hero">
+        <div class="container">
+            <div class="admin__hero-card">
+                <p class="admin__eyebrow">Security Details</p>
+
+                <h1 class="admin__title">
+                    <%= hasUser ? securityUser?.username ?? "User Security" : "User Security" %>
+                </h1>
+
+                <p class="admin__text">
+                    Review this user's security profile and apply account-level security actions.
+                </p>
+
+                <div class="admin__actions">
+                    <a href="/admin/security" class="main__button button__text btn">
+                        Back to Security
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container security-details">
+            <% if (success) { %>
+                <div class="alert success__alert"><%= success %></div>
+            <% } %>
+
+            <% if (error) { %>
+                <div class="alert error__alert"><%= error %></div>
+            <% } %>
+
+            <div class="security-profile">
+                <article class="security-profile__card">
+                    <div class="security-profile__avatar">
+                        <%= hasUser ? String(securityUser?.username ?? "U").charAt(0).toUpperCase() : "U" %>
+                    </div>
+
+                    <h2 class="security-profile__name">
+                        <%= hasUser ? securityUser?.username ?? "N/A" : "N/A" %>
+                    </h2>
+
+                    <div class="security-profile__meta">
+                        <span>Email: <strong><%= hasUser ? securityUser?.email ?? "N/A" : "N/A" %></strong></span>
+                        <span>Phone: <strong><%= hasUser ? securityUser?.phoneNumber ?? "N/A" : "N/A" %></strong></span>
+                        <span>Role: <strong><%= hasUser ? securityUser?.role ?? "user" : "N/A" %></strong></span>
+                        <span>Status: <span class="badge <%= statusBadgeClass %>"><%= accountStatus %></span></span>
+                    </div>
+                </article>
+
+                <article class="admin__panel">
+                    <header class="admin__panel-header">
+                        <div>
+                            <p class="admin__eyebrow">Security Snapshot</p>
+                            <h2>Current Account State</h2>
+                        </div>
+                    </header>
+
+                    <div class="security-status-grid">
+                        <div class="security-stat-card">
+                            <span>Login Attempts</span>
+                            <strong><%= security?.loginAttempts ?? 0 %></strong>
+                        </div>
+
+                        <div class="security-stat-card">
+                            <span>Ban Warnings</span>
+                            <strong><%= security?.banWarningCount ?? 0 %></strong>
+                        </div>
+
+                        <div class="security-stat-card">
+                            <span>Times Banned</span>
+                            <strong><%= security?.timesAccountHasBeenBanned ?? 0 %></strong>
+                        </div>
+
+                        <div class="security-stat-card">
+                            <span>Auth Version</span>
+                            <strong><%= security?.authVersion ?? 0 %></strong>
+                        </div>
+                    </div>
+                </article>
+            </div>
+
+            <article class="admin__panel">
+                <header class="admin__panel-header">
+                    <div>
+                        <p class="admin__eyebrow">Account Controls</p>
+                        <h2>Security Actions</h2>
+                    </div>
+                </header>
+
+                <div class="security-actions">
+                    <div class="security-action-row">
+                        <div class="security-action-row__label">
+                            <strong>Account Status</strong>
+                            <span>Activate account or move it back to pending review.</span>
+                        </div>
+
+                        <div class="security-action-row__value">
+                            <span class="badge <%= statusBadgeClass %>"><%= accountStatus %></span>
+                        </div>
+
+                        <div class="security-action-row__buttons">
+                            <form action="/admin/security/<%= securityId %>/activate" method="POST">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button class="btn success__button" type="submit">Activate</button>
+                            </form>
+
+                            <form action="/admin/security/<%= securityId %>/pending" method="POST">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button class="btn warning__button" type="submit">Set Pending</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="security-action-row">
+                        <div class="security-action-row__label">
+                            <strong>Account Lock</strong>
+                            <span>Unlock the account and clear the active lock window.</span>
+                        </div>
+
+                        <div class="security-action-row__value">
+                            <%= isLocked ? `Locked until ${new Date(security.lockUntil).toLocaleString()}` : "Not locked" %>
+                        </div>
+
+                        <div class="security-action-row__buttons">
+                            <form action="/admin/security/<%= securityId %>/unlock" method="POST">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button class="btn info__button" type="submit">Unlock</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="security-action-row">
+                        <div class="security-action-row__label">
+                            <strong>Login Attempts</strong>
+                            <span>Reset failed login attempts and remove lock state.</span>
+                        </div>
+
+                        <div class="security-action-row__value">
+                            <%= security?.loginAttempts ?? 0 %> attempts
+                        </div>
+
+                        <div class="security-action-row__buttons">
+                            <form action="/admin/security/<%= securityId %>/login-attempts/reset" method="POST">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button class="btn info__button" type="submit">Reset Attempts</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="security-action-row">
+                        <div class="security-action-row__label">
+                            <strong>Ban Warnings</strong>
+                            <span>Add a warning or reset existing warning count.</span>
+                        </div>
+
+                        <div class="security-action-row__value">
+                            <%= security?.banWarningCount ?? 0 %> warnings
+                        </div>
+
+                        <div class="security-action-row__buttons">
+                            <form action="/admin/security/<%= securityId %>/warn" method="POST">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button class="btn warning__button" type="submit">Add Warning</button>
+                            </form>
+
+                            <form action="/admin/security/<%= securityId %>/warnings/reset" method="POST">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button class="btn info__button" type="submit">Reset Warnings</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="security-action-row">
+                        <div class="security-action-row__label">
+                            <strong>User Sessions</strong>
+                            <span>Invalidate existing sessions by increasing auth version.</span>
+                        </div>
+
+                        <div class="security-action-row__value">
+                            Version <%= security?.authVersion ?? 0 %>
+                        </div>
+
+                        <div class="security-action-row__buttons">
+                            <form action="/admin/security/<%= securityId %>/sessions/invalidate" method="POST">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button class="btn warning__button" type="submit">Invalidate Sessions</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="security-action-row">
+                        <div class="security-action-row__label">
+                            <strong>Temporary Suspension</strong>
+                            <span>Suspend the account for a fixed number of days.</span>
+                        </div>
+
+                        <div class="security-action-row__value">
+                            <%= security?.bannedUntil ? `Until ${new Date(security.bannedUntil).toLocaleString()}` : "No active suspension" %>
+                        </div>
+
+                        <div class="security-action-row__buttons">
+                            <form action="/admin/security/<%= securityId %>/suspend" method="POST" class="security-suspend-form">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+                                <input
+                                    class="input"
+                                    type="number"
+                                    name="durationDays"
+                                    min="1"
+                                    value="7"
+                                    placeholder="Days"
+                                    required
+                                >
+
+                                <input
+                                    class="input"
+                                    type="text"
+                                    name="reason"
+                                    placeholder="Reason"
+                                >
+
+                                <button class="btn warning__button" type="submit">Suspend</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="security-action-row security-danger-zone">
+                        <div class="security-action-row__label">
+                            <strong>Permanent Ban</strong>
+                            <span>Ban or unban this account. Use carefully.</span>
+                        </div>
+
+                        <div class="security-action-row__value">
+                            <%= security?.accountBanned ? "Currently banned" : "Not permanently banned" %>
+                        </div>
+
+                        <div class="security-action-row__buttons">
+                            <form action="/admin/security/<%= securityId %>/ban" method="POST">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <input type="hidden" name="reason" value="Admin security action">
+                                <button class="btn error__button" type="submit">Ban Account</button>
+                            </form>
+
+                            <form action="/admin/security/<%= securityId %>/unban" method="POST">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button class="btn success__button" type="submit">Unban Account</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </section>
+</main>
+
+<%- include("../../partials/admin_footer") %>

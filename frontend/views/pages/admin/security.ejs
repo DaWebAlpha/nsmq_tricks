@@ -1,4 +1,4 @@
-<%- include("../../partials/header", {title: "Security"}) %>
+<%- include("../../partials/header", {title: title ?? "Security"}) %>
 <%- include("../../partials/navigation_nav", {
     nav1: "/admin/security",
     title1: "Security",
@@ -6,14 +6,26 @@
     title2: "Go back home"
 }) %>
 
+<%
+    const hasActiveFilters =
+        filters?.username ||
+        filters?.email ||
+        filters?.phoneNumber ||
+        filters?.accountStatus ||
+        filters?.locked ||
+        filters?.suspended ||
+        filters?.banned ||
+        filters?.loginAttempts;
+%>
+
 <main role="main" class="admin__main">
     <section class="admin__hero">
         <div class="container">
             <div class="admin__hero-card">
-                <p class="admin__eyebrow">Security Center</p>
-                <h1 class="admin__title">Account Security</h1>
+                <p class="admin__eyebrow">Security Management</p>
+                <h1 class="admin__title"><%= title ?? "Security" %></h1>
                 <p class="admin__text">
-                    Review your account status, lock state, ban state, and security metadata.
+                    Search users by username, email, or phone number and manage their security profile.
                 </p>
             </div>
         </div>
@@ -21,47 +33,279 @@
 
     <section class="section">
         <div class="container">
+            <% if (success) { %>
+                <div class="alert success__alert"><%= success %></div>
+            <% } %>
+
+            <% if (error) { %>
+                <div class="alert error__alert"><%= error %></div>
+            <% } %>
+
             <article class="admin__panel">
                 <header class="admin__panel-header">
                     <div>
-                        <p class="admin__eyebrow">Security Overview</p>
-                        <h2>Security Status</h2>
+                        <p class="admin__eyebrow">Filters</p>
+                        <h2>Search Security Records</h2>
                     </div>
                 </header>
 
-                <div class="admin__metric-list">
-                    <div class="admin__metric-item">
-                        <span>Account Status</span>
-                        <strong><%= security?.accountStatus ?? "N/A" %></strong>
+                <form action="/admin/security" method="GET" class="form">
+                    <div class="grid__3">
+                        <input class="input" type="text" name="username" placeholder="Username" value="<%= filters?.username ?? '' %>">
+                        <input class="input" type="text" name="email" placeholder="Email" value="<%= filters?.email ?? '' %>">
+                        <input class="input" type="text" name="phoneNumber" placeholder="Phone Number" value="<%= filters?.phoneNumber ?? '' %>">
+
+                        <select class="select" name="accountStatus">
+                            <option value="">All Statuses</option>
+                            <option value="pending" <%= filters?.accountStatus === "pending" ? "selected" : "" %>>Pending</option>
+                            <option value="active" <%= filters?.accountStatus === "active" ? "selected" : "" %>>Active</option>
+                            <option value="suspended" <%= filters?.accountStatus === "suspended" ? "selected" : "" %>>Suspended</option>
+                            <option value="banned" <%= filters?.accountStatus === "banned" ? "selected" : "" %>>Banned</option>
+                        </select>
+
+                        <select class="select" name="locked">
+                            <option value="">Lock Status</option>
+                            <option value="true" <%= filters?.locked === "true" ? "selected" : "" %>>Locked</option>
+                            <option value="false" <%= filters?.locked === "false" ? "selected" : "" %>>Not Locked</option>
+                        </select>
+
+                        <select class="select" name="suspended">
+                            <option value="">Suspension Status</option>
+                            <option value="true" <%= filters?.suspended === "true" ? "selected" : "" %>>Suspended</option>
+                            <option value="false" <%= filters?.suspended === "false" ? "selected" : "" %>>Not Suspended</option>
+                        </select>
+
+                        <select class="select" name="banned">
+                            <option value="">Ban Status</option>
+                            <option value="true" <%= filters?.banned === "true" ? "selected" : "" %>>Banned</option>
+                            <option value="false" <%= filters?.banned === "false" ? "selected" : "" %>>Not Banned</option>
+                        </select>
+
+                        <input class="input" type="number" min="0" name="loginAttempts" placeholder="Login attempts" value="<%= filters?.loginAttempts ?? '' %>">
                     </div>
 
-                    <div class="admin__metric-item">
-                        <span>Login Attempts</span>
-                        <strong><%= security?.loginAttempts ?? 0 %></strong>
+                    <div class="button__group">
+                        <button type="submit" class="main__button button__text btn">Search</button>
+                        <a href="/admin/security" class="btn info__button">Reset</a>
+                    </div>
+                </form>
+            </article>
+
+            <br>
+
+            <% if (hasActiveFilters) { %>
+                <article class="admin__panel">
+                    <header class="admin__panel-header">
+                        <div>
+                            <p class="admin__eyebrow">Search Result</p>
+                            <h2>
+                                Matched User Security
+                                (<%= searchPagination?.total ?? searchResults?.length ?? 0 %>)
+                            </h2>
+                        </div>
+                    </header>
+
+                    <div class="button__group">
+                        <% if (filters?.username) { %>
+                            <span class="badge info__badge">Username: <%= filters.username %></span>
+                        <% } %>
+
+                        <% if (filters?.email) { %>
+                            <span class="badge info__badge">Email: <%= filters.email %></span>
+                        <% } %>
+
+                        <% if (filters?.phoneNumber) { %>
+                            <span class="badge info__badge">Phone: <%= filters.phoneNumber %></span>
+                        <% } %>
+
+                        <% if (filters?.accountStatus) { %>
+                            <span class="badge warning__badge">Status: <%= filters.accountStatus %></span>
+                        <% } %>
+
+                        <% if (filters?.locked) { %>
+                            <span class="badge warning__badge">Locked: <%= filters.locked === "true" ? "Yes" : "No" %></span>
+                        <% } %>
+
+                        <% if (filters?.suspended) { %>
+                            <span class="badge warning__badge">Suspended: <%= filters.suspended === "true" ? "Yes" : "No" %></span>
+                        <% } %>
+
+                        <% if (filters?.banned) { %>
+                            <span class="badge error__badge">Banned: <%= filters.banned === "true" ? "Yes" : "No" %></span>
+                        <% } %>
+
+                        <% if (filters?.loginAttempts) { %>
+                            <span class="badge info__badge">Attempts: <%= filters.loginAttempts %></span>
+                        <% } %>
                     </div>
 
-                    <div class="admin__metric-item">
-                        <span>Locked</span>
-                        <strong><%= security?.isLocked ? "Yes" : "No" %></strong>
+                    <br>
+
+                    <% if (searchResults?.length) { %>
+                        <div class="table-wrapper">
+                            <table class="table">
+                                <thead class="table__header">
+                                    <tr class="table__row">
+                                        <th class="table__cell">User</th>
+                                        <th class="table__cell">Status</th>
+                                        <th class="table__cell">Banned</th>
+                                        <th class="table__cell">Warnings</th>
+                                        <th class="table__cell">Login Attempts</th>
+                                        <th class="table__cell">Locked Until</th>
+                                        <th class="table__cell">Action</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody class="table__body">
+                                    <% searchResults.forEach((record) => { %>
+                                        <% const securityId = record?.id ?? record?._id; %>
+                                        <% const securityUser = record?.userId; %>
+
+                                        <tr class="table__row">
+                                            <td class="table__cell">
+                                                <% if (securityUser && typeof securityUser === "object") { %>
+                                                    <strong><%= securityUser?.username ?? "N/A" %></strong><br>
+                                                    <small><%= securityUser?.email ?? "N/A" %></small><br>
+                                                    <small><%= securityUser?.phoneNumber ?? "N/A" %></small><br>
+                                                    <small><%= securityUser?.role ?? "user" %></small>
+                                                <% } else { %>
+                                                    <%= securityUser ?? "N/A" %>
+                                                <% } %>
+                                            </td>
+
+                                            <td class="table__cell">
+                                                <span class="badge <%= record?.accountStatus === "active" ? "success__badge" : record?.accountStatus === "banned" ? "error__badge" : "warning__badge" %>">
+                                                    <%= record?.accountStatus ?? "N/A" %>
+                                                </span>
+                                            </td>
+
+                                            <td class="table__cell"><%= record?.accountBanned ? "Yes" : "No" %></td>
+                                            <td class="table__cell"><%= record?.banWarningCount ?? 0 %></td>
+                                            <td class="table__cell"><%= record?.loginAttempts ?? 0 %></td>
+                                            <td class="table__cell"><%= record?.lockUntil ? new Date(record.lockUntil).toLocaleString() : "N/A" %></td>
+
+                                            <td class="table__cell">
+                                                <a href="/admin/security/<%= securityId %>" class="btn button__sm info__button">
+                                                    View / Manage
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } else { %>
+                        <div class="alert info__alert">
+                            No user security record matched your search.
+                        </div>
+                    <% } %>
+                </article>
+
+                <br>
+            <% } %>
+
+            <article class="admin__panel">
+                <header class="admin__panel-header">
+                    <div>
+                        <p class="admin__eyebrow">All Records</p>
+                        <h2>All User Security Records</h2>
+                    </div>
+                </header>
+
+                <% if (securityRecords?.length) { %>
+                    <div class="table-wrapper">
+                        <table class="table">
+                            <thead class="table__header">
+                                <tr class="table__row">
+                                    <th class="table__cell">User</th>
+                                    <th class="table__cell">Status</th>
+                                    <th class="table__cell">Banned</th>
+                                    <th class="table__cell">Warnings</th>
+                                    <th class="table__cell">Login Attempts</th>
+                                    <th class="table__cell">Locked Until</th>
+                                    <th class="table__cell">Banned Until</th>
+                                    <th class="table__cell">Last Login</th>
+                                    <th class="table__cell">Auth Version</th>
+                                    <th class="table__cell">Action</th>
+                                </tr>
+                            </thead>
+
+                            <tbody class="table__body">
+                                <% securityRecords.forEach((record) => { %>
+                                    <% const securityId = record?.id ?? record?._id; %>
+                                    <% const securityUser = record?.userId; %>
+
+                                    <tr class="table__row">
+                                        <td class="table__cell">
+                                            <% if (securityUser && typeof securityUser === "object") { %>
+                                                <strong><%= securityUser?.username ?? "N/A" %></strong><br>
+                                                <small><%= securityUser?.email ?? "N/A" %></small><br>
+                                                <small><%= securityUser?.phoneNumber ?? "N/A" %></small><br>
+                                                <small><%= securityUser?.role ?? "user" %></small>
+                                            <% } else { %>
+                                                <%= securityUser ?? "N/A" %>
+                                            <% } %>
+                                        </td>
+
+                                        <td class="table__cell">
+                                            <span class="badge <%= record?.accountStatus === "active" ? "success__badge" : record?.accountStatus === "banned" ? "error__badge" : "warning__badge" %>">
+                                                <%= record?.accountStatus ?? "N/A" %>
+                                            </span>
+                                        </td>
+
+                                        <td class="table__cell"><%= record?.accountBanned ? "Yes" : "No" %></td>
+                                        <td class="table__cell"><%= record?.banWarningCount ?? 0 %></td>
+                                        <td class="table__cell"><%= record?.loginAttempts ?? 0 %></td>
+                                        <td class="table__cell"><%= record?.lockUntil ? new Date(record.lockUntil).toLocaleString() : "N/A" %></td>
+                                        <td class="table__cell"><%= record?.bannedUntil ? new Date(record.bannedUntil).toLocaleString() : "N/A" %></td>
+                                        <td class="table__cell"><%= record?.lastLoginAt ? new Date(record.lastLoginAt).toLocaleString() : "N/A" %></td>
+                                        <td class="table__cell"><%= record?.authVersion ?? 0 %></td>
+
+                                        <td class="table__cell">
+                                            <a href="/admin/security/<%= securityId %>" class="btn button__sm info__button">
+                                                View / Manage
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
                     </div>
 
-                    <div class="admin__metric-item">
-                        <span>Banned</span>
-                        <strong><%= security?.isBanned ? "Yes" : "No" %></strong>
-                    </div>
+                    <% if (pagination && pagination.totalPages > 1) { %>
+                        <nav class="pagination" aria-label="Security pagination">
+                            <ul class="pagination__list">
+                                <% if (pagination.page > 1) { %>
+                                    <li class="pagination__item">
+                                        <a class="pagination__link" href="/admin/security?page=<%= pagination.page - 1 %>&limit=<%= pagination.limit %>">
+                                            Prev
+                                        </a>
+                                    </li>
+                                <% } %>
 
-                    <div class="admin__metric-item">
-                        <span>Suspended</span>
-                        <strong><%= security?.isSuspended ? "Yes" : "No" %></strong>
-                    </div>
+                                <% for (let pageNumber = 1; pageNumber <= pagination.totalPages; pageNumber++) { %>
+                                    <li class="pagination__item">
+                                        <a class="pagination__link <%= Number(pagination.page) === pageNumber ? 'active' : '' %>" href="/admin/security?page=<%= pageNumber %>&limit=<%= pagination.limit %>">
+                                            <%= pageNumber %>
+                                        </a>
+                                    </li>
+                                <% } %>
 
-                    <div class="admin__metric-item">
-                        <span>Last Login</span>
-                        <strong>
-                            <%= security?.lastLoginAt ? new Date(security.lastLoginAt).toLocaleString() : "Never" %>
-                        </strong>
+                                <% if (pagination.page < pagination.totalPages) { %>
+                                    <li class="pagination__item">
+                                        <a class="pagination__link" href="/admin/security?page=<%= pagination.page + 1 %>&limit=<%= pagination.limit %>">
+                                            Next
+                                        </a>
+                                    </li>
+                                <% } %>
+                            </ul>
+                        </nav>
+                    <% } %>
+                <% } else { %>
+                    <div class="alert info__alert">
+                        No security records found.
                     </div>
-                </div>
+                <% } %>
             </article>
         </div>
     </section>

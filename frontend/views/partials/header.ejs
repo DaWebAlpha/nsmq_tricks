@@ -1,18 +1,36 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-        <meta name="author" content="Dewebalpha (Abradu Frimpong)" />
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="author" content="Dewebalpha (Abradu Frimpong)" />
 
-        <link rel="stylesheet" href="/css/reset.css">
-        <link rel="stylesheet" href="/css/tokens.css">
-        <link rel="stylesheet" href="/css/base.css">
-        <link rel="stylesheet" href="/css/layout.css">
-        <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/reset.css">
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/components.css">
+ 
+    <title><%= title %> | Study App</title>
 
-        <title><%= title %> | Study App</title>
-    </head>
-    <body>
+    <script nonce="<%= cspNonce %>">
+        window.MathJax = {
+            tex: {
+                inlineMath: [["\\(", "\\)"], ["$", "$"]],
+                displayMath: [["\\[", "\\]"], ["$$", "$$"]],
+                processEscapes: true
+            },
+            svg: {
+                fontCache: "global"
+            }
+        };
+    </script>
 
-   
+    <script
+        id="MathJax-script"
+        defer
+        nonce="<%= cspNonce %>"
+        src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js">
+    </script>
+</head>
+<body>

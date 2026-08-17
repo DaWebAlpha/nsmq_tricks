@@ -10,10 +10,10 @@
     <section class="admin__hero">
         <div class="container">
             <div class="admin__hero-card">
-                <p class="admin__eyebrow">Authentication Logs</p>
+                <p class="admin__eyebrow">Security Monitoring</p>
                 <h1 class="admin__title">Login Logs</h1>
                 <p class="admin__text">
-                    Review successful login attempts, devices, IP addresses, and timestamps.
+                    Track successful login attempts, devices, IP addresses, user agents, and login times.
                 </p>
             </div>
         </div>
@@ -24,38 +24,109 @@
             <article class="admin__panel">
                 <header class="admin__panel-header">
                     <div>
-                        <p class="admin__eyebrow">Logs</p>
-                        <h2>Successful Logins</h2>
+                        <p class="admin__eyebrow">Login Attempts</p>
+                        <h2>Successful Authentication Logs</h2>
                     </div>
                 </header>
 
-                <% if (typeof logs !== "undefined" && logs?.length) { %>
+                <% if (loginLogs?.length) { %>
                     <div class="table-wrapper">
                         <table class="table">
                             <thead class="table__header">
                                 <tr class="table__row">
-                                    <th class="table__cell">User</th>
+                                    <th class="table__cell">User ID</th>
+                                    <th class="table__cell">Identifier</th>
                                     <th class="table__cell">IP Address</th>
-                                    <th class="table__cell">Device</th>
+                                    <th class="table__cell">Device Name</th>
+                                    <th class="table__cell">Device Id</th>
                                     <th class="table__cell">User Agent</th>
-                                    <th class="table__cell">Date</th>
+                                    <th class="table__cell">Login At</th>
                                 </tr>
                             </thead>
+
                             <tbody class="table__body">
-                                <% logs.forEach((log) => { %>
+                                <% loginLogs.forEach((log) => { %>
                                     <tr class="table__row">
-                                        <td class="table__cell"><%= log?.user?.username ?? log?.userId ?? "N/A" %></td>
-                                        <td class="table__cell"><%= log?.ipAddress ?? "N/A" %></td>
-                                        <td class="table__cell"><%= log?.deviceName ?? "N/A" %></td>
-                                        <td class="table__cell"><%= log?.userAgent ?? "N/A" %></td>
-                                        <td class="table__cell"><%= log?.createdAt ? new Date(log.createdAt).toLocaleString() : "N/A" %></td>
+                                        <td class="table__cell">
+                                            <%= log?.userId ?? "N/A" %>
+                                        </td>
+
+                                        <td class="table__cell">
+                                            <%= log?.identifier ?? "N/A" %>
+                                        </td>
+
+                                        <td class="table__cell">
+                                            <%= log?.ipAddress ?? "N/A" %>
+                                        </td>
+
+                                        <td class="table__cell">
+                                            <%= log?.deviceName ?? "N/A" %>
+                                        </td>
+
+                                        <td class="table__cell">
+                                            <%= log?.deviceId ?? "N/A" %>
+                                        </td>
+
+                                        <td class="table__cell">
+                                            <%= log?.userAgent ?? "N/A" %>
+                                        </td>
+
+                                        <td class="table__cell">
+                                            <%= log?.loginAt
+                                                ? new Date(log.loginAt).toLocaleString()
+                                                : log?.createdAt
+                                                    ? new Date(log.createdAt).toLocaleString()
+                                                    : "N/A"
+                                            %>
+                                        </td>
                                     </tr>
                                 <% }) %>
                             </tbody>
                         </table>
                     </div>
+
+                    <% if (pagination && pagination.totalPages > 1) { %>
+                        <nav class="pagination" aria-label="Login logs pagination">
+                            <ul class="pagination__list">
+                                <% if (pagination.page > 1) { %>
+                                    <li class="pagination__item">
+                                        <a
+                                            class="pagination__link"
+                                            href="/admin/login-logs?page=<%= pagination.page - 1 %>&limit=<%= pagination.limit %>"
+                                        >
+                                            Prev
+                                        </a>
+                                    </li>
+                                <% } %>
+
+                                <% for (let pageNumber = 1; pageNumber <= pagination.totalPages; pageNumber++) { %>
+                                    <li class="pagination__item">
+                                        <a
+                                            class="pagination__link <%= Number(pagination.page) === pageNumber ? 'active' : '' %>"
+                                            href="/admin/login-logs?page=<%= pageNumber %>&limit=<%= pagination.limit %>"
+                                        >
+                                            <%= pageNumber %>
+                                        </a>
+                                    </li>
+                                <% } %>
+
+                                <% if (pagination.page < pagination.totalPages) { %>
+                                    <li class="pagination__item">
+                                        <a
+                                            class="pagination__link"
+                                            href="/admin/login-logs?page=<%= pagination.page + 1 %>&limit=<%= pagination.limit %>"
+                                        >
+                                            Next
+                                        </a>
+                                    </li>
+                                <% } %>
+                            </ul>
+                        </nav>
+                    <% } %>
                 <% } else { %>
-                    <div class="alert info__alert">No login logs available yet.</div>
+                    <div class="alert info__alert">
+                        No login logs available yet.
+                    </div>
                 <% } %>
             </article>
         </div>

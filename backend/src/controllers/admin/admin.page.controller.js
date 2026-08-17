@@ -29,17 +29,6 @@ class AdminController {
 
     adminProfilePage = renderPage("pages/admin/profile", "Admin Profile");
 
-    adminUsersPage = renderPage("pages/admin/users", "Manage Users");
-
-    adminSecurityPage = renderPage("pages/admin/security", "Security");
-
-    adminLoginLogsPage = renderPage("pages/admin/login-logs", "Login Logs");
-
-    adminFailedLoginLogsPage = renderPage(
-        "pages/admin/failed-login-logs",
-        "Failed Login Logs"
-    );
-
     adminNotesPage = renderPage("pages/admin/notes", "Manage Notes");
 
     adminCreateNotePage = renderPage("pages/admin/create-note", "Create Note");

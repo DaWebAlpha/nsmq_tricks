@@ -18,9 +18,7 @@ import { NotFoundError } from "../../errors/notfound.error.js";
 import { userRepository } from "../../repositories/user.repository.js";
 import { securityRepository } from "../../repositories/security.repository.js";
 import withTransaction from "../../utils/db.transaction.js";
-import {
-    LoginLog
-} from "../../models/auth/loginLogs.model.js";
+import { LoginLog } from "../../models/auth/loginLogs.model.js";
 import {
     FailedLoginLog,
     FAILED_LOGIN_REASONS,
@@ -112,6 +110,19 @@ class AuthService {
                 message: "User registered",
             });
 
+            await LoginLog.create(
+                [{
+                    userId,
+                    identifier: username ?? email ?? phoneNumber,
+                    deviceName,
+                    deviceId,
+                    userAgent,
+                    ipAddress,
+                    loginAt: new Date(),
+                }],
+                { session }
+            );
+
             return {
                 user,
                 security,
@@ -123,207 +134,254 @@ class AuthService {
     }
 
     async login(payload = {}, request) {
-        const identifier = normalizeValue(String(payload?.identifier ?? ""));
-        const password = String(payload?.password ?? "");
+    const identifier = normalizeValue(String(payload?.identifier ?? ""));
+    const password = String(payload?.password ?? "");
 
-        const deviceName = getDeviceName(request);
-        const deviceId = getDeviceId(request);
-        const userAgent = getUserAgent(request);
-        const ipAddress = getClientIP(request);
+    const deviceName = getDeviceName(request);
+    const deviceId = getDeviceId(request);
+    const userAgent = getUserAgent(request);
+    const ipAddress = getClientIP(request);
 
-        if (!identifier || !password) {
-            throw new BadRequestError({
-                message: "Enter either username, email or phone number and password",
-            });
+    if (!identifier || !password) {
+        throw new BadRequestError({
+            message: "Enter either username, email or phone number and password",
+        });
+    }
+
+    let user;
+
+    try {
+        user = await userRepository.findByIdentifier(identifier);
+    } catch (error) {
+        if (error instanceof UnauthenticatedError) {
+            user = null;
+        } else {
+            throw error;
         }
+    }
 
-        let user;
+    if (!user) {
+        await FailedLoginLog.create({
+            userId: null,
+            identifier,
+            ipAddress,
+            userAgent,
+            deviceName,
+            deviceId,
+            attemptedAt: new Date(),
+            reason: FAILED_LOGIN_REASONS.UNKNOWN_IDENTIFIER,
+        });
+
+        throw new UnauthenticatedError({ message: "Invalid credentials" });
+    }
+
+    const userId = resolveId(user);
+
+    if (!userId) {
+        throw new UnauthenticatedError({ message: "Invalid credentials" });
+    }
+
+    let security;
+
+    try {
+        security = await securityRepository.findOne(
+            { userId },
+            { lean: false }
+        );
+    } catch (error) {
+        system_logger.error({ userId, error }, "User security record not found");
+
+        throw new UnauthenticatedError({
+            message: "Internal authentication error",
+        });
+    }
+
+    if (!security) {
+        system_logger.error({ userId }, "User security record not found");
+
+        throw new UnauthenticatedError({
+            message: "Internal authentication error",
+        });
+    }
+
+    if (security.isSuspended) {
+        await FailedLoginLog.create({
+            userId,
+            identifier,
+            ipAddress,
+            userAgent,
+            deviceName,
+            deviceId,
+            attemptedAt: new Date(),
+            reason: FAILED_LOGIN_REASONS.BANNED_ACCOUNT,
+        });
+
+        audit_logger.warn(
+            { userId, deviceId },
+            "Login attempted on suspended account"
+        );
+
+        throw new UnauthorizedError({
+            message: "Account is temporarily suspended. Please try again later",
+        });
+    }
+
+    if (security.isBanned) {
+        await FailedLoginLog.create({
+            userId,
+            identifier,
+            ipAddress,
+            userAgent,
+            deviceName,
+            deviceId,
+            attemptedAt: new Date(),
+            reason: FAILED_LOGIN_REASONS.BANNED_ACCOUNT,
+        });
+
+        audit_logger.warn(
+            { userId, deviceId },
+            "Login attempted on banned account"
+        );
+
+        throw new UnauthorizedError({
+            message: "Account is banned. Please contact support for more information.",
+        });
+    }
+
+    if (security.isLocked) {
+        await FailedLoginLog.create({
+            userId,
+            identifier,
+            ipAddress,
+            userAgent,
+            deviceName,
+            deviceId,
+            attemptedAt: new Date(),
+            reason: FAILED_LOGIN_REASONS.LOCKED_ACCOUNT,
+        });
+
+        audit_logger.warn(
+            { userId, deviceId },
+            "Login attempted on locked account"
+        );
+
+        throw new UnauthorizedError({
+            message: "Account is locked due to multiple failed login attempts. Please try again later",
+        });
+    }
+
+    const isValidPassword = await user.comparePassword(password);
+
+    if (!isValidPassword) {
+        // TEMPORARY DEBUG
+        console.log("[LOGIN ATTEMPTS DEBUG BEFORE]", {
+            loginAttempts: security.loginAttempts,
+            lockUntil: security.lockUntil,
+            isLocked: security.isLocked,
+            isMongooseDoc: typeof security.toObject === "function",
+        });
+
+        security.incrementLoginAttempts();
+
+        console.log("[LOGIN ATTEMPTS DEBUG AFTER INCREMENT]", {
+            loginAttempts: security.loginAttempts,
+            lockUntil: security.lockUntil,
+        });
 
         try {
-            user = await userRepository.findByIdentifier(identifier);
-        } catch (error) {
-            if (error instanceof UnauthenticatedError) {
-                user = null;
-            } else {
-                throw error;
-            }
-        }
-
-        if (!user) {
-            await FailedLoginLog.create({
-                userId: null,
-                identifier,
-                ipAddress,
-                userAgent,
-                deviceName,
-                deviceId,
-                attemptedAt: new Date(),
-                reason: FAILED_LOGIN_REASONS.UNKNOWN_IDENTIFIER,
-            });
-
-            throw new UnauthenticatedError({ message: "Invalid credentials" });
-        }
-
-        const userId = resolveId(user);
-
-        if (!userId) {
-            throw new UnauthenticatedError({ message: "Invalid credentials" });
-        }
-
-        let security;
-
-        try {
-            security = await securityRepository.findOne({ userId });
-        } catch (error) {
-            system_logger.error({ userId }, "User security record not found");
-
-            throw new UnauthenticatedError({
-                message: "Internal authentication error",
-            });
-        }
-
-        if (!security) {
-            system_logger.error({ userId }, "User security record not found");
-
-            throw new UnauthenticatedError({
-                message: "Internal authentication error",
-            });
-        }
-
-        if (security.isSuspended) {
-            await FailedLoginLog.create({
-                userId,
-                identifier,
-                ipAddress,
-                userAgent,
-                deviceName,
-                deviceId,
-                attemptedAt: new Date(),
-                reason: FAILED_LOGIN_REASONS.BANNED_ACCOUNT,
-            });
-
-            audit_logger.warn(
-                { userId, deviceId },
-                "Login attempted on suspended account"
-            );
-
-            throw new UnauthorizedError({
-                message: "Account is temporarily suspended. Please try again later",
-            });
-        }
-
-        if (security.isBanned) {
-            await FailedLoginLog.create({
-                userId,
-                identifier,
-                ipAddress,
-                userAgent,
-                deviceName,
-                deviceId,
-                attemptedAt: new Date(),
-                reason: FAILED_LOGIN_REASONS.BANNED_ACCOUNT,
-            });
-
-            audit_logger.warn(
-                { userId, deviceId },
-                "Login attempted on banned account"
-            );
-
-            throw new UnauthorizedError({
-                message: "Account is banned. Please contact support for more information.",
-            });
-        }
-
-        if (security.isLocked) {
-            await FailedLoginLog.create({
-                userId,
-                identifier,
-                ipAddress,
-                userAgent,
-                deviceName,
-                deviceId,
-                attemptedAt: new Date(),
-                reason: FAILED_LOGIN_REASONS.LOCKED_ACCOUNT,
-            });
-
-            audit_logger.warn(
-                { userId, deviceId },
-                "Login attempted on locked account"
-            );
-
-            throw new UnauthorizedError({
-                message: "Account is locked due to multiple failed login attempts. Please try again later",
-            });
-        }
-
-        /* console.log("LOGIN USER:", user);
-        console.log("HAS PASSWORD:", Boolean(user?.password));
-        console.log("HAS comparePassword:", typeof user?.comparePassword);
-        console.log("PLAIN PASSWORD:", password); */
-        const isValidPassword = await user.comparePassword(password);
-
-        if (!isValidPassword) {
-            await FailedLoginLog.create({
-                userId,
-                identifier,
-                ipAddress,
-                userAgent,
-                deviceName,
-                deviceId,
-                attemptedAt: new Date(),
-                reason: FAILED_LOGIN_REASONS.INVALID_PASSWORD,
-            });
-
-            await security.incrementLoginAttempts();
             await security.save({ validateBeforeSave: false });
 
-            audit_logger.warn(
-                { userId, deviceId },
-                "Invalid password entered"
-            );
-
-            throw new UnauthenticatedError({ message: "Invalid credentials" });
+            console.log("[LOGIN ATTEMPTS DEBUG AFTER SAVE]", {
+                loginAttempts: security.loginAttempts,
+                lockUntil: security.lockUntil,
+            });
+        } catch (saveError) {
+            console.error("[LOGIN ATTEMPTS SAVE ERROR]", saveError);
         }
 
-        return withTransaction(async (session) => {
-            await security.handleSuccessfulLoginAttempt();
-            await security.save({ session });
-
-            const accessToken = generateAccessToken(userId);
-
-            const refreshToken = await generateRefreshToken({
-                userId,
-                deviceName,
-                deviceId,
-                userAgent,
-                ipAddress,
-                session,
+        // Verify it actually persisted to DB
+        try {
+            const reloaded = await securityRepository.findByUserId(userId);
+            console.log("[LOGIN ATTEMPTS DB CHECK]", {
+                dbLoginAttempts: reloaded.loginAttempts,
+                dbLockUntil: reloaded.lockUntil,
             });
+        } catch (reloadError) {
+            console.error("[LOGIN ATTEMPTS RELOAD ERROR]", reloadError);
+        }
+        // END TEMPORARY DEBUG
 
-            audit_logger.info({
+        await FailedLoginLog.create({
+            userId,
+            identifier,
+            ipAddress,
+            userAgent,
+            deviceName,
+            deviceId,
+            attemptedAt: new Date(),
+            reason: FAILED_LOGIN_REASONS.INVALID_PASSWORD,
+        });
+
+        audit_logger.warn(
+            {
                 userId,
                 deviceId,
-                message: "User logged in",
-            });
+                loginAttempts: security.loginAttempts,
+                lockUntil: security.lockUntil,
+            },
+            "Invalid password entered"
+        );
 
-            await LoginLog.create({
-                userId: resolveId(user),
+        throw new UnauthenticatedError({ message: "Invalid credentials" });
+    }
+
+    return withTransaction(async (session) => {
+        security.handleSuccessfulLoginAttempt();
+
+        await security.save({
+            session,
+            validateBeforeSave: false,
+        });
+
+        const accessToken = generateAccessToken(userId);
+
+        const refreshToken = await generateRefreshToken({
+            userId,
+            deviceName,
+            deviceId,
+            userAgent,
+            ipAddress,
+            session,
+        });
+
+        audit_logger.info({
+            userId,
+            deviceId,
+            message: "User logged in",
+        });
+
+        await LoginLog.create(
+            [{
+                userId,
+                identifier,
                 deviceName,
                 deviceId,
                 userAgent,
                 ipAddress,
                 loginAt: new Date(),
-            });
+            }],
+            { session }
+        );
 
-            return {
-                user,
-                security,
-                accessToken,
-                refreshToken,
-                message: "Login successful",
-            };
-        });
-    }
+        return {
+            user,
+            security,
+            accessToken,
+            refreshToken,
+            message: "Login successful",
+        };
+    });
+}
 
     async refreshToken(payload = {}, request) {
         const rawRefreshToken = String(payload?.refreshToken ?? "").trim();
@@ -393,11 +451,11 @@ class AuthService {
             try {
                 security = await securityRepository.findOne(
                     { userId },
-                    { session }
+                    { session, lean: false }
                 );
             } catch (error) {
                 system_logger.error(
-                    { userId },
+                    { userId, error },
                     "User security record not found"
                 );
 
@@ -535,7 +593,7 @@ class AuthService {
                     {
                         userId: resolvedUserId,
                     },
-                    { session }
+                    { session, lean: false }
                 );
             } catch (error) {
                 security = null;

@@ -1,70 +1,35 @@
 import express from "express";
 import path from "path";
+import crypto from "crypto";
 import { fileURLToPath } from "url";
 
-// Security & Utility Imports
-//import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { xss } from "express-xss-sanitizer";
 import mongoSanitize from "express-mongo-sanitize";
 
-// Internal Imports
 import { config } from "./config/config.js";
 import { access_logger } from "./core/pino.logger.js";
 import { notFound } from "./middlewares/notFound.js";
 import { handleError } from "./middlewares/handleError.js";
 
-// Routes
 import { authPageRouter } from "./routes/auth/auth.page.route.js";
 import { pageRouter } from "./routes/pages/pages.routes.js";
-/* import { csrfMiddleware } from "./middlewares/csrf.middleware.js"; */
-import { subscriptionRouter } from "./routes/subscription/subscription.routes.js"
+import { subscriptionRouter } from "./routes/subscription/subscription.routes.js";
 import { adminRouter } from "./routes/admin/admin.routes.js";
 import { viewLocalsMiddleware } from "./middlewares/view.locals.middleware.js";
 
-import { 
-    getClientIP,
-    getUserAgent,
-    
-} from "./utils/request.js";
+import { getClientIP, getUserAgent } from "./utils/request.js";
 
-/**
- * ---------------------------------------------------------
- * EXPRESS APPLICATION INSTANCE
- * ---------------------------------------------------------
- */
 const app = express();
 
-/**
- * ---------------------------------------------------------
- * ENVIRONMENT CONFIGURATION
- * ---------------------------------------------------------
- */
 const NODE_ENV = config.node_env;
 
-/**
- * ---------------------------------------------------------
- * PATH CONFIGURATION (ESM SAFE)
- * ---------------------------------------------------------
- */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/**
- * ---------------------------------------------------------
- * EXPRESS HARDENING
- * ---------------------------------------------------------
- *
- * Removes Express signature header.
- */
 app.disable("x-powered-by");
 
-/**
- * ---------------------------------------------------------
- * VIEW ENGINE & STATIC FILES
- * ---------------------------------------------------------
- */
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "..", "..", "frontend", "views"));
 
@@ -75,27 +40,75 @@ app.use(
     })
 );
 
-/**
- * ---------------------------------------------------------
- * TRUST PROXY
- * ---------------------------------------------------------
- */
 app.set("trust proxy", 1);
 
 /**
- * ---------------------------------------------------------
- * SECURITY MIDDLEWARE
- * ---------------------------------------------------------
+ * CSP nonce for EJS inline scripts.
  */
-app.use(helmet());
+app.use((request, response, next) => {
+    response.locals.cspNonce = crypto.randomBytes(16).toString("base64");
+    next();
+});
 
 /**
- * ---------------------------------------------------------
- * ACCESS LOGGER (POST-RESPONSE)
- * ---------------------------------------------------------
+ * Security middleware.
  *
- * Logs after response is sent to capture status and duration.
+ * Important MathJax v4 notes:
+ * - MathJax v4 injects runtime styles, so styleSrc must allow 'unsafe-inline'.
+ * - Do NOT combine style nonce with 'unsafe-inline', because browsers ignore
+ *   'unsafe-inline' when a nonce/hash exists in style-src.
+ * - MathJax v4 may fetch extra resources from cdn.jsdelivr.net, so connectSrc
+ *   must allow the CDN.
  */
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+
+                scriptSrc: [
+                    "'self'",
+                    (request, response) => `'nonce-${response.locals.cspNonce}'`,
+                    "https://cdn.jsdelivr.net",
+                    "blob:",
+                ],
+
+                workerSrc: [
+                    "'self'",
+                    "blob:",
+                ],
+
+                styleSrc: [
+                    "'self'",
+                    "'unsafe-inline'",
+                    "https://cdn.jsdelivr.net",
+                ],
+
+                imgSrc: [
+                    "'self'",
+                    "data:",
+                ],
+
+                fontSrc: [
+                    "'self'",
+                    "data:",
+                    "https://cdn.jsdelivr.net",
+                ],
+
+                connectSrc: [
+                    "'self'",
+                    "https://cdn.jsdelivr.net",
+                ],
+
+                objectSrc: ["'none'"],
+
+                upgradeInsecureRequests:
+                    NODE_ENV === "production" ? [] : null,
+            },
+        },
+    })
+);
+
 app.use((request, response, next) => {
     const startTime = Date.now();
 
@@ -113,54 +126,17 @@ app.use((request, response, next) => {
     next();
 });
 
-/**
- * ---------------------------------------------------------
- * CORS CONFIGURATION (LOCAL DEFINITION)
- * ---------------------------------------------------------
- *
- * Defined here (not config) to avoid affecting existing config tests.
- */
-/* const CORS_ORIGINS = {
-    development: ["http://localhost:5173"],
-    production: ["https://yourproductiondomain.com"],
-};
-
-const allowedOrigins = CORS_ORIGINS[NODE_ENV] || [];
-
-app.use(
-    cors({
-        origin(origin, callback) {
-            // Allow tools like Postman / curl (no origin)
-            if (!origin) return callback(null, true);
-
-            if (allowedOrigins.includes(origin)) {
-                return callback(null, true);
-            }
-
-            return callback(new Error("CORS origin not allowed"));
-        },
-        credentials: true,
-    })
-);
- */
-/**
- * ---------------------------------------------------------
- * REQUEST PARSERS
- * ---------------------------------------------------------
- */
 app.use(cookieParser());
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-/* app.use(csrfMiddleware); */
+
+app.use(express.json({ limit: "10mb" }));
+
+app.use(express.urlencoded({
+    extended: true,
+    limit: "10mb",
+    parameterLimit: 50000,
+}));
 app.use(viewLocalsMiddleware);
 
-/**
- * ---------------------------------------------------------
- * MONGO SANITIZE
- * ---------------------------------------------------------
- *
- * Prevents MongoDB operator injection.
- */
 app.use((request, _response, next) => {
     if (request.body) {
         request.body = mongoSanitize.sanitize(request.body);
@@ -181,18 +157,26 @@ app.use((request, _response, next) => {
     next();
 });
 
-/**
- * ---------------------------------------------------------
- * XSS PROTECTION
- * ---------------------------------------------------------
- */
-app.use(xss());
 
-/**
- * ---------------------------------------------------------
- * HEALTH CHECK
- * ---------------------------------------------------------
- */
+app.use((request, response, next) => {
+    const isNotesWriteRoute =
+        request.method === "POST" &&
+        request.originalUrl.startsWith("/admin/notes");
+
+    if (isNotesWriteRoute && request.body?.content !== undefined) {
+        const originalContent = request.body.content;
+
+        xss()(request, response, (error) => {
+            request.body.content = originalContent;
+            next(error);
+        });
+
+        return;
+    }
+
+    return xss()(request, response, next);
+});
+
 app.get("/health", (_request, response) => {
     return response.status(200).json({
         status: "success",
@@ -203,31 +187,21 @@ app.get("/health", (_request, response) => {
     });
 });
 
-/**
- * ---------------------------------------------------------
- * APPLICATION ROUTES
- * ---------------------------------------------------------
- */
-/* app.use("/auth/api", authApiRouter); */
 app.use("/auth/page", authPageRouter);
 app.use("/subscription", subscriptionRouter);
 app.use("/", pageRouter);
 app.use("/admin", adminRouter);
 
-
-/**
- * TEST FOR INTERNAL SERVER ERROR
- */
-app.get("/test-error", (requst, response, next) => {
+app.get("/test-error", (_request, _response, next) => {
     next(new Error("Something broke"));
 });
-/**
- * ---------------------------------------------------------
- * ERROR HANDLING
- * ---------------------------------------------------------
- */
+
 app.use(notFound);
 app.use(handleError);
 
 export { app };
 export default app;
+
+
+
+

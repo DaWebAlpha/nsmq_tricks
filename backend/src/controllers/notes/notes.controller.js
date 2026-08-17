@@ -1,6 +1,7 @@
 import { notesService } from "../../services/notes/notes.service.js";
 import { autoCatchFn } from "../../utils/autoCatchFn.js";
 import { getAdminAuditMeta } from "../../utils/admin.audit.js";
+import { SUBJECTS } from "../../utils/subjects.js";
 
 const getUserId = (request) => {
     return request.user?.id ?? request.user?._id;
@@ -10,9 +11,11 @@ const getOldInput = (body = {}) => {
     return {
         subject: body.subject ?? "",
         topic: body.topic ?? "",
+        topicNumber: body.topicNumber ?? 0,
         subTopic: body.subTopic ?? "",
+        subTopicNumber: body.subTopicNumber ?? 0,
         content: body.content ?? "",
-        isPremium: body.isPremium ?? "",
+        isPremium: body.isPremium ?? "true",
     };
 };
 
@@ -20,9 +23,11 @@ const getNoteOldInput = (note = {}) => {
     return {
         subject: note.subject ?? "",
         topic: note.topic ?? "",
+        topicNumber: note.topicNumber ?? 0,
         subTopic: note.subTopic ?? "",
+        subTopicNumber: note.subTopicNumber ?? 0,
         content: note.content ?? "",
-        isPremium: note.isPremium ?? "",
+        isPremium: String(note.isPremium ?? true),
     };
 };
 
@@ -37,6 +42,8 @@ const renderNotesPage = (response, data = {}) => {
         pagination: data.pagination ?? null,
         oldInput: data.oldInput ?? getOldInput(),
         filters: data.filters ?? {},
+        subjects: data.subjects ?? SUBJECTS,
+        currentPath: data.currentPath ?? "/admin/notes",
         totalActiveNotes: data.totalActiveNotes ?? 0,
         totalNotes: data.totalNotes ?? 0,
         totalDeletedNotes: data.totalDeletedNotes ?? 0,
@@ -45,11 +52,30 @@ const renderNotesPage = (response, data = {}) => {
 
 class NotesController {
     getAllActiveNotes = autoCatchFn(async (request, response) => {
-        const { page, limit, subject, topic, subTopic, isPremium } = request.query;
+        const {
+            page,
+            limit,
+            subject,
+            topic,
+            topicNumber,
+            subTopic,
+            subTopicNumber,
+            isPremium,
+        } = request.query;
 
         const result = await notesService.getAllActiveNotes(
-            { subject, topic, subTopic, isPremium },
-            { page, limit }
+            {
+                subject,
+                topic,
+                topicNumber,
+                subTopic,
+                subTopicNumber,
+                isPremium,
+            },
+            {
+                page,
+                limit,
+            }
         );
 
         return renderNotesPage(response, {
@@ -59,15 +85,35 @@ class NotesController {
             notes: result.notes,
             pagination: result.pagination,
             filters: request.query,
+            currentPath: "/admin/notes/active",
         });
     });
 
     getAllNotes = autoCatchFn(async (request, response) => {
-        const { page, limit, subject, topic, subTopic, isPremium } = request.query;
+        const {
+            page,
+            limit,
+            subject,
+            topic,
+            topicNumber,
+            subTopic,
+            subTopicNumber,
+            isPremium,
+        } = request.query;
 
         const result = await notesService.getAllNotes(
-            { subject, topic, subTopic, isPremium },
-            { page, limit }
+            {
+                subject,
+                topic,
+                topicNumber,
+                subTopic,
+                subTopicNumber,
+                isPremium,
+            },
+            {
+                page,
+                limit,
+            }
         );
 
         return renderNotesPage(response, {
@@ -77,15 +123,35 @@ class NotesController {
             notes: result.notes,
             pagination: result.pagination,
             filters: request.query,
+            currentPath: "/admin/notes",
         });
     });
 
     getAllDeletedNotes = autoCatchFn(async (request, response) => {
-        const { page, limit, subject, topic, subTopic, isPremium } = request.query;
+        const {
+            page,
+            limit,
+            subject,
+            topic,
+            topicNumber,
+            subTopic,
+            subTopicNumber,
+            isPremium,
+        } = request.query;
 
         const result = await notesService.getAllDeletedNotes(
-            { subject, topic, subTopic, isPremium },
-            { page, limit }
+            {
+                subject,
+                topic,
+                topicNumber,
+                subTopic,
+                subTopicNumber,
+                isPremium,
+            },
+            {
+                page,
+                limit,
+            }
         );
 
         return renderNotesPage(response, {
@@ -95,6 +161,7 @@ class NotesController {
             notes: result.notes,
             pagination: result.pagination,
             filters: request.query,
+            currentPath: "/admin/notes/deleted",
         });
     });
 
@@ -103,6 +170,7 @@ class NotesController {
             title: "Create Notes",
             success: request.flash?.("success")?.[0] ?? false,
             error: request.flash?.("error")?.[0] ?? false,
+            currentPath: "/admin/notes/create",
         });
     });
 
@@ -125,6 +193,7 @@ class NotesController {
                 title: "Create Notes",
                 error: error?.message ?? "Note creation failed",
                 oldInput: getOldInput(request.body),
+                currentPath: "/admin/notes/create",
             });
         }
     });
@@ -140,6 +209,7 @@ class NotesController {
             error: request.flash?.("error")?.[0] ?? false,
             note: result.note,
             noteId,
+            currentPath: `/admin/notes/${noteId}`,
         });
     });
 
@@ -155,37 +225,43 @@ class NotesController {
             note: result.note,
             noteId,
             oldInput: getNoteOldInput(result.note),
+            currentPath: `/admin/notes/${noteId}/edit`,
         });
     });
 
     updateNote = autoCatchFn(async (request, response) => {
-        try {
-            const { noteId } = request.params;
-            const userId = getUserId(request);
+    try {
+        const { noteId } = request.params;
+        const userId = getUserId(request);
 
-            const result = await notesService.editNote(
-                noteId,
-                request.body,
-                userId,
-                {
-                    requireOwnership: false,
-                },
-                getAdminAuditMeta(request)
-            );
+        console.log("NOTE UPDATE BODY:", request.body);
+        console.log("CONTENT LENGTH:", request.body?.content?.length);
+        console.log("CONTENT START:", request.body?.content?.slice(0, 100));
 
-            request.flash?.("success", result.message);
+        const result = await notesService.editNote(
+            noteId,
+            request.body,
+            userId,
+            {
+                requireOwnership: false,
+            },
+            getAdminAuditMeta(request)
+        );
 
-            return response.redirect("/admin/notes");
-        } catch (error) {
-            return renderNotesPage(response, {
-                statusCode: error.statusCode ?? 400,
-                title: "Edit Note",
-                error: error?.message ?? "Note update failed",
-                oldInput: getOldInput(request.body),
-                noteId: request.params.noteId,
-            });
-        }
-    });
+        request.flash?.("success", result.message);
+
+        return response.redirect(`/admin/notes/${request.params.noteId}/edit`);
+    } catch (error) {
+        return renderNotesPage(response, {
+            statusCode: error.statusCode ?? 400,
+            title: "Edit Note",
+            error: error?.message ?? "Note update failed",
+            oldInput: getOldInput(request.body),
+            noteId: request.params.noteId,
+            currentPath: `/admin/notes/${request.params.noteId}/edit`,
+        });
+    }
+});
 
     deleteNote = autoCatchFn(async (request, response) => {
         try {
@@ -206,6 +282,50 @@ class NotesController {
             return response.redirect("/admin/notes");
         } catch (error) {
             request.flash?.("error", error?.message ?? "Note delete failed");
+
+            return response.redirect("/admin/notes");
+        }
+    });
+
+    restoreNote = autoCatchFn(async (request, response) => {
+        try {
+            const { noteId } = request.params;
+            const userId = getUserId(request);
+
+            const result = await notesService.restoreNote(
+                noteId,
+                userId,
+                {},
+                getAdminAuditMeta(request)
+            );
+
+            request.flash?.("success", result.message);
+
+            return response.redirect("/admin/notes/deleted");
+        } catch (error) {
+            request.flash?.("error", error?.message ?? "Note restore failed");
+
+            return response.redirect("/admin/notes/deleted");
+        }
+    });
+
+    hardDeleteNote = autoCatchFn(async (request, response) => {
+        try {
+            const { noteId } = request.params;
+            const userId = getUserId(request);
+
+            const result = await notesService.hardDeleteNote(
+                noteId,
+                userId,
+                {},
+                getAdminAuditMeta(request)
+            );
+
+            request.flash?.("success", result.message);
+
+            return response.redirect("/admin/notes");
+        } catch (error) {
+            request.flash?.("error", error?.message ?? "Permanent delete failed");
 
             return response.redirect("/admin/notes");
         }
